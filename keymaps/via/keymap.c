@@ -178,7 +178,7 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 
     switch (active_layer()) {
         case _BASE:
-            clockwise ? tap_code(KC_MS_WH_UP) : tap_code(KC_MS_WH_DOWN);
+            clockwise ? tap_code(MS_WHLU) : tap_code(MS_WHLD);
             break;
         case _NAV:
             clockwise ? tap_code16(LGUI(KC_TAB)) : tap_code16(LALT(KC_TAB));
