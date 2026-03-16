@@ -41,11 +41,9 @@ jobs:
       - name: Inject keyboard sources
         run: |
           mkdir -p "$QMK_HOME/keyboards/$KEYBOARD"
-          rsync -a --delete \
-            --exclude ".git" \
-            --exclude ".github" \
-            "$GITHUB_WORKSPACE/" \
-            "$QMK_HOME/keyboards/$KEYBOARD/"
+          find "$QMK_HOME/keyboards/$KEYBOARD" -mindepth 1 -maxdepth 1 ! -name ".git" -exec rm -rf {} +
+          cp -R "$GITHUB_WORKSPACE/." "$QMK_HOME/keyboards/$KEYBOARD/"
+          rm -rf "$QMK_HOME/keyboards/$KEYBOARD/.git" "$QMK_HOME/keyboards/$KEYBOARD/.github"
 
       - name: Build firmware
         run: |
