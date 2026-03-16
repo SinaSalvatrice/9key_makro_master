@@ -9,26 +9,6 @@
         "rows": ["GP2", "GP3", "GP4"],
         "cols": ["GP5", "GP6", "GP7"]
     },
-    "encoder": {
-        "rotary": [
-            {
-                "pin_a": "GP8",
-                "pin_b": "GP9",
-                "resolution": 4
-            }
-        ]
-    },
-    "ws2812": {
-        "pin": "GP13"
-    },
-    "rgblight": {
-        "led_count": 9,
-        "animations": {
-            "breathing": true,
-            "rainbow_mood": true,
-            "rainbow_swirl": true
-        }
-    },
     "usb": {
         "vid": "0xFEED",
         "pid": "0x9B01",
@@ -36,10 +16,7 @@
     },
     "features": {
         "bootmagic": true,
-        "extrakey": true,
-        "mousekey": true,
-        "nkro": true,
-        "via": true
+        "nkro": true
     },
     "layouts": {
         "LAYOUT": {
