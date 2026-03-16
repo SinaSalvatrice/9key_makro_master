@@ -1,4 +1,5 @@
-# Silent_display_3x3
+RP2040 zero 
+VIA compatible
 
 QMK firmware for a 3×3 macropad with rotary encoder, 10 RGB LEDs, SSD1306 OLED and VIA support.
 Rows: 2, 3, 4
@@ -8,15 +9,9 @@ btn: 10
 rgb: 13 (9 pixels)
 ## Quick start
 
-```bash
-# Copy keyboards/silent_display_3x3/ into your QMK firmware tree, then:
-qmk compile -kb silent_display_3x3 -km default
-```
-
-See [`keyboards/silent_display_3x3/`](keyboards/silent_display_3x3/) for wiring and layer documentation.
 
 
-a new keymap to this mapping.
+mapping
 
     [_BASE] = LAYOUT(
         LGUI(KC_TAB),  KC_UP,    LALT(KC_TAB),
@@ -54,7 +49,7 @@ a new keymap to this mapping.
         TO(4),  TO(0),  KC_NO,
         KC_NO,  KC_NO,  KC_NO
     ),
-};
+
 
 
 
