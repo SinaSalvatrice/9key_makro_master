@@ -1,4 +1,4 @@
-name: Build QMK Firmware (9key_makro_master)
+name: Build 9key_makro_master
 
 on:
   workflow_dispatch:
@@ -16,11 +16,18 @@ on:
   pull_request:
 
 jobs:
-  build:
+  firmware:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      KEYBOARD: 9key_makro_master
+      KEYMAP: via
+      QMK_HOME: ${{ github.workspace }}/qmk_firmware
 
     steps:
-      - name: Checkout repository
+      - name: Checkout keyboard repo
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -28,51 +35,47 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-none-eabi binutils-arm-none-eabi dfu-util git rsync unzip zip
+
       - name: Install QMK CLI
         run: |
           python -m pip install --upgrade pip
           pip install qmk
 
-      - name: Set up QMK firmware tree
+      - name: Initialize QMK
         run: |
-          rm -rf ~/qmk_firmware
-          git clone --depth 1 https://github.com/qmk/qmk_firmware.git ~/qmk_firmware
-          qmk config user.qmk_home=~/qmk_firmware
+          qmk setup -H "$QMK_HOME" -y
+          qmk config user.qmk_home="$QMK_HOME"
 
-      - name: Copy keyboard into QMK tree
+      - name: Inject keyboard sources
         run: |
-          mkdir -p ~/qmk_firmware/keyboards/9key_makro_master
+          mkdir -p "$QMK_HOME/keyboards/$KEYBOARD"
           rsync -a --delete \
-            --exclude '.git' \
-            --exclude '.github' \
+            --exclude ".git" \
+            --exclude ".github" \
             "$GITHUB_WORKSPACE/" \
-            ~/qmk_firmware/keyboards/9key_makro_master/
+            "$QMK_HOME/keyboards/$KEYBOARD/"
 
-      - name: Install ARM GCC toolchain
-        run: sudo apt-get update && sudo apt-get install -y gcc-arm-none-eabi
-
-      - name: Pull submodules
-        run: cd ~/qmk_firmware && git submodule update --init --recursive
-
-      - name: Compile VIA firmware
+      - name: Check QMK environment
         run: |
-          cd ~/qmk_firmware
-          qmk compile -j 1 -kb 9key_makro_master -km via
+          qmk doctor
 
-      - name: Collect UF2 artifact
+      - name: Build firmware
         run: |
-          set -e
+          qmk compile -kb "$KEYBOARD" -km "$KEYMAP"
+
+      - name: Stage artifact
+        run: |
           mkdir -p "$GITHUB_WORKSPACE/artifacts"
-          UF2_FILE=$(find "$HOME/qmk_firmware" -type f -name '9key_makro_master_via.uf2' | head -n 1)
-          if [ -z "$UF2_FILE" ]; then
-            echo "Expected firmware 9key_makro_master_via.uf2 was not produced."
-            exit 1
-          fi
-          cp "$UF2_FILE" "$GITHUB_WORKSPACE/artifacts/"
+          find "$QMK_HOME" -type f -name "${KEYBOARD}_${KEYMAP}.uf2" -exec cp {} "$GITHUB_WORKSPACE/artifacts/" \;
+          test -f "$GITHUB_WORKSPACE/artifacts/${KEYBOARD}_${KEYMAP}.uf2"
 
-      - name: Upload UF2 artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: 9key_makro_master_via_firmware
+          name: 9key_makro_master_via_uf2
           path: artifacts/9key_makro_master_via.uf2
           if-no-files-found: error
