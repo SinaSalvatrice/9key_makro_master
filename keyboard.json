@@ -4,7 +4,7 @@
     "maintainer": "Sina",
     "processor": "RP2040",
     "bootloader": "rp2040",
-    "diode_direction": "COL2ROW",
+    "diode_direction": "ROW2COL",
     "matrix_pins": {
         "rows": ["GP2", "GP3", "GP4"],
         "cols": ["GP5", "GP6", "GP7"]
@@ -13,10 +13,6 @@
         "vid": "0xFEED",
         "pid": "0x9B01",
         "device_version": "1.0.0"
-    },
-    "features": {
-        "bootmagic": true,
-        "nkro": true
     },
     "layouts": {
         "LAYOUT": {
