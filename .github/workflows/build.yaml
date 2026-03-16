@@ -25,7 +25,7 @@ jobs:
     env:
       KEYBOARD: 9key_makro_master
       KEYMAP: via
-      QMK_HOME: /tmp/vial-qmk
+      QMK_HOME: /tmp/qmk_firmware
 
     steps:
       - name: Checkout keyboard repo
@@ -33,9 +33,9 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Clone Vial QMK
+      - name: Clone QMK Firmware
         run: |
-          git clone --depth 1 --recurse-submodules https://github.com/vial-kb/vial-qmk.git "$QMK_HOME"
+          git clone --depth 1 --recurse-submodules https://github.com/qmk/qmk_firmware.git "$QMK_HOME"
           qmk config user.qmk_home="$QMK_HOME"
 
       - name: Inject keyboard sources
