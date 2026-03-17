@@ -4,7 +4,7 @@
     "maintainer": "Sina",
     "processor": "RP2040",
     "bootloader": "rp2040",
-    "diode_direction": "COL2ROWS",
+    "diode_direction": "ROW2COL",
     "matrix_pins": {
         "rows": ["GP2", "GP4", "GP3"],
         "cols": ["GP5", "GP6", "GP7"]
