@@ -1,4 +1,9 @@
 #pragma once
 
+#define I2C_DRIVER I2CD1
+#define I2C1_SDA_PIN GP0
+#define I2C1_SCL_PIN GP1
+#define OLED_TIMEOUT 60000
+
 #define USB_SUSPEND_WAKEUP_DELAY 0
 #define DEBOUNCE 5
