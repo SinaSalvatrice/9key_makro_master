@@ -12,17 +12,12 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
     return false;
 }
 
-#ifdef OLED_ENABLE
-oled_rotation_t oled_init_user(oled_rotation_t rotation) {
-    return rotation;
-}
-
-bool oled_task_user(void) {
-    oled_clear();
-    oled_write_ln_P(PSTR("9key bringup"), false);
-    oled_write_ln_P(PSTR("OLED + ENC"), false);
-    oled_write_ln_P(PSTR("Enc: Vol"), false);
-    return false;
+#ifdef RGBLIGHT_ENABLE
+void keyboard_post_init_user(void) {
+    rgblight_enable_noeeprom();
+    rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
+    rgblight_set_speed_noeeprom(128);
+    rgblight_sethsv_noeeprom(170, 255, 80);
 }
 #endif
 
