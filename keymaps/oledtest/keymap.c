@@ -1,5 +1,6 @@
 #include QMK_KEYBOARD_H
 #include "i2c_master.h"
+#include "gpio.h"
 
 #ifdef OLED_ENABLE
 oled_rotation_t oled_init_user(oled_rotation_t rotation) {
@@ -7,11 +8,8 @@ oled_rotation_t oled_init_user(oled_rotation_t rotation) {
 }
 
 void keyboard_post_init_user(void) {
-#ifdef RGBLIGHT_ENABLE
-    rgblight_enable_noeeprom();
-    rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
-    rgblight_sethsv_noeeprom(0, 255, 120);
-#endif
+    gpio_set_pin_output(GP25);
+    gpio_write_pin_high(GP25);
 
     i2c_status_t status_3c;
     i2c_status_t status_3d;
