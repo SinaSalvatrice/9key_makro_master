@@ -7,6 +7,12 @@ oled_rotation_t oled_init_user(oled_rotation_t rotation) {
 }
 
 void keyboard_post_init_user(void) {
+#ifdef RGBLIGHT_ENABLE
+    rgblight_enable_noeeprom();
+    rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
+    rgblight_sethsv_noeeprom(0, 255, 120);
+#endif
+
     i2c_status_t status_3c;
     i2c_status_t status_3d;
 
