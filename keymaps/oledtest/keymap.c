@@ -1,8 +1,22 @@
 #include QMK_KEYBOARD_H
+#include "i2c_master.h"
 
 #ifdef OLED_ENABLE
 oled_rotation_t oled_init_user(oled_rotation_t rotation) {
     return rotation;
+}
+
+void keyboard_post_init_user(void) {
+    i2c_status_t status_3c;
+    i2c_status_t status_3d;
+
+    i2c_init();
+    status_3c = i2c_ping_address(0x3C << 1, 100);
+    status_3d = i2c_ping_address(0x3D << 1, 100);
+
+    uprintf("OLED probe start\n");
+    uprintf("I2C 0x3C status: %d\n", status_3c);
+    uprintf("I2C 0x3D status: %d\n", status_3d);
 }
 
 bool oled_task_user(void) {
