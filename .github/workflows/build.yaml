@@ -36,7 +36,7 @@ jobs:
       - name: Clone QMK Firmware
         run: |
           git clone --depth 1 --filter=blob:none https://github.com/qmk/qmk_firmware.git "$QMK_HOME"
-          git -C "$QMK_HOME" submodule update --init --depth 1 lib/chibios lib/chibios-contrib lib/pico-sdk
+          git -C "$QMK_HOME" submodule update --init --depth 1 lib/chibios lib/chibios-contrib lib/pico-sdk lib/printf
           qmk config user.qmk_home="$QMK_HOME"
 
       - name: Inject keyboard sources
