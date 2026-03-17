@@ -29,17 +29,6 @@
             "rainbow_swirl": true
         }
     },
-    "ws2812": {
-        "pin": "GP13"
-    },
-    "rgblight": {
-        "led_count": 9,
-        "animations": {
-            "breathing": true,
-            "rainbow_mood": true,
-            "rainbow_swirl": true
-        }
-    },
     "usb": {
         "vid": "0xFEED",
         "pid": "0x9B01",
