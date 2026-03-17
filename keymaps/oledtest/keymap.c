@@ -8,8 +8,8 @@ oled_rotation_t oled_init_user(oled_rotation_t rotation) {
 }
 
 void keyboard_post_init_user(void) {
-    gpio_set_pin_output(GP25);
-    gpio_write_pin_high(GP25);
+    gpio_set_pin_output(ONBOARD_LED_PIN);
+    gpio_write_pin_high(ONBOARD_LED_PIN);
 
     i2c_status_t status_3c;
     i2c_status_t status_3d;
