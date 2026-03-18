@@ -1,6 +1,7 @@
 #include QMK_KEYBOARD_H
 #include "i2c_master.h"
 #include "gpio.h"
+#include "9key_makro_master.h"
 
 #define OLED_I2C_ADDR (OLED_DISPLAY_ADDRESS << 1)
 #define OLED_CMD 0x00
