@@ -11,3 +11,4 @@ MOUSEKEY_ENABLE = no
 EXTRAKEY_ENABLE = no
 WS2812_DRIVER = vendor
 CONSOLE_ENABLE = no
+# No ChibiOS or TMK dependencies for RP2040
