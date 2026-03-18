@@ -78,10 +78,52 @@ bool oled_task_user(void) {
 }
 #endif
 
+enum layers {
+    _BASE,
+    _NAV,
+    _EDIT,
+    _MEDIA,
+    _FN,
+    _RGB,
+    _SELECT
+};
+
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
-    [0] = LAYOUT(
-        KC_1, KC_2, KC_3,
-        KC_4, KC_5, KC_6,
-        KC_7, KC_8, KC_9
+    [_BASE] = LAYOUT(
+        LGUI(KC_TAB),  KC_UP,    LALT(KC_TAB),
+        KC_LEFT,       KC_ENT,   KC_RGHT,
+        LCTL(KC_Z),    KC_DOWN,  LCTL(KC_R)
+    ),
+    [_NAV] = LAYOUT(
+        LGUI(KC_TAB),  KC_UP,    LALT(KC_TAB),
+        KC_LEFT,       KC_ENT,   KC_RGHT,
+        LCTL(KC_Z),    KC_DOWN,  LCTL(KC_R)
+    ),
+    [_EDIT] = LAYOUT(
+        LCTL(KC_A),         LCTL(KC_C),   LCTL(KC_V),
+        LCTL(KC_X),         LCTL(KC_ENT), KC_NO,
+        LCTL(LSFT(KC_Z)),   KC_SPC,       KC_BSPC
+    ),
+    [_MEDIA] = LAYOUT(
+        KC_MPRV,  KC_MSEL,  KC_MNXT,
+        KC_MRWD,  KC_MPLY,  KC_MFFD,
+        KC_DOWN,  KC_MSTP,  KC_UP
+    ),
+    [_FN] = LAYOUT(
+        KC_F13,  KC_F14,  KC_F15,
+        KC_F16,  KC_F17,  KC_F18,
+        KC_F19,  KC_F20,  KC_F21
+    ),
+    [_RGB] = LAYOUT(
+        UG_SPDU,  UG_SPDD,  UG_TOGG,
+        UG_HUEU,  UG_HUED,  UG_VALU,
+        UG_SATU,  UG_SATD,  UG_VALD
+    ),
+    [_SELECT] = LAYOUT(
+        TO(_NAV),  TO(_EDIT),  TO(_MEDIA),
+        TO(_FN),   TO(_BASE),  KC_NO,
+        KC_NO,     KC_NO,      KC_NO
     ),
 };
+
+// Encoder, RGB, OLED logic should be implemented here for full compatibility.
