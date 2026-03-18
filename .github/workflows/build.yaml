@@ -35,7 +35,8 @@ jobs:
 
       - name: Clone QMK Firmware
         run: |
-          git clone --depth 1 --recurse-submodules https://github.com/qmk/qmk_firmware.git "$QMK_HOME"
+          git clone --depth 1 --filter=blob:none https://github.com/qmk/qmk_firmware.git "$QMK_HOME"
+          git -C "$QMK_HOME" submodule update --init --depth 1 lib/chibios lib/chibios-contrib lib/pico-sdk
           qmk config user.qmk_home="$QMK_HOME"
 
       - name: Inject keyboard sources
@@ -60,6 +61,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: 9key_makro_master_bringup_uf2
-          path: artifacts/9key_makro_master_via.uf2
+          name: 9key_makro_master_oledtest_uf2
+          path: artifacts/9key_makro_master_oledtest.uf2
           if-no-files-found: error

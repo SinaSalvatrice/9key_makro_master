@@ -132,6 +132,11 @@ static void rotate_selector(bool clockwise) {
 
 void keyboard_post_init_user(void) {
     gpio_set_pin_input_high(ENCODER_BTN_PIN);
+
+    // Initialize OLED power pin
+    gpio_set_pin_output(GP25);
+    gpio_write_pin_high(GP25);
+
     refresh_feedback();
 }
 
