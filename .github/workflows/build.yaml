@@ -24,7 +24,7 @@ jobs:
 
     env:
       KEYBOARD: 9key_makro_master
-      KEYMAP: bringup
+      KEYMAP: via
       QMK_HOME: /tmp/qmk_firmware
 
     steps:
