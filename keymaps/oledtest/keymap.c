@@ -75,7 +75,7 @@ void keyboard_post_init_user(void) {
     gpio_write_pin_high(ONBOARD_LED_PIN);
 
     i2c_status_t status_3c;
-   // i2c_status_t status_3d;
+    i2c_status_t status_3d;
 
     i2c_init();
     status_3c = i2c_ping_address(0x3C << 1, 100);
