@@ -74,16 +74,16 @@ void keyboard_post_init_user(void) {
     gpio_set_pin_output(ONBOARD_LED_PIN);
     gpio_write_pin_high(ONBOARD_LED_PIN);
 
-    i2c_status_t status_3c;
-    i2c_status_t status_3d;
+    //i2c_status_t status_3c;
+    //i2c_status_t status_3d;
 
     i2c_init();
-    status_3c = i2c_ping_address(0x3C << 1, 100);
-    status_3d = i2c_ping_address(0x3D << 1, 100);
+    //status_3c = i2c_ping_address(0x3C << 1, 100);
+    //status_3d = i2c_ping_address(0x3D << 1, 100);
 
     uprintf("OLED probe start\n");
-    uprintf("I2C 0x3C status: %d\n", status_3c);
-    uprintf("I2C 0x3D status: %d\n", status_3d);
+    //uprintf("I2C 0x3C status: %d\n", status_3c);
+    //uprintf("I2C 0x3D status: %d\n", status_3d);
 
     if (status_3c == I2C_STATUS_SUCCESS) {
         if (raw_oled_init()) {
