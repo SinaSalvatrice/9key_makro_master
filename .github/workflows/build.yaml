@@ -24,7 +24,7 @@ jobs:
 
     env:
       KEYBOARD: 9key_makro_master
-      KEYMAP: bringup
+      KEYMAP: oledtest
       QMK_HOME: /tmp/qmk_firmware
 
     steps:
@@ -61,8 +61,8 @@ jobs:
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
-          name: 9key_makro_master_bringup_uf2
-          path: artifacts/9key_makro_master_bringup.uf2
+          name: 9key_makro_master_oledtest_uf2
+          path: artifacts/9key_makro_master_oledtest.uf2
           if-no-files-found: error
           compression-level: 6
           overwrite: false
