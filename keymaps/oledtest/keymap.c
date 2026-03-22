@@ -11,6 +11,7 @@ bool oled_task_user(void) {
     oled_write_ln_P(PSTR("9KEY MAKRO"), false);
     oled_write_ln_P(PSTR("MASTER"), false);
     oled_write_ln_P(PSTR("ADDR 0x3C"), false);
+    oled_write_ln_P(PSTR("IC SH1106"), false);
     oled_write_ln_P(PSTR("I2C GP0/GP1"), false);
     return false;
 }
