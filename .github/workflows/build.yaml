@@ -3,7 +3,7 @@ name: Build 9key_makro_master
 on:
   workflow_dispatch:
   push:
-    branches: [ oledtest ]
+    branches: [ oledworking ]
     paths:
       - "config.h"
       - "keyboard.json"
