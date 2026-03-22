@@ -1,18 +1,49 @@
 #include QMK_KEYBOARD_H
+
+static uint16_t last_keycode = KC_NO;
+static uint8_t  last_row     = 0;
+static uint8_t  last_col     = 0;
+
+static const char *layer_name(uint8_t layer) {
+    switch (layer) {
+        case 0:
+            return "BASE";
+        default:
+            return "UNK";
+    }
+}
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    if (record->event.pressed) {
+        last_keycode = keycode;
+        last_row     = record->event.key.row;
+        last_col     = record->event.key.col;
+    }
+
+    return true;
+}
+
 #ifdef OLED_ENABLE
 oled_rotation_t oled_init_user(oled_rotation_t rotation) {
     return rotation;
 }
 
 bool oled_task_user(void) {
+    char keycode_hex[8];
+
     oled_clear();
-    oled_set_cursor(0, 0);
-    oled_write_ln_P(PSTR("OLED TEST"), false);
-    oled_write_ln_P(PSTR("9KEY MAKRO"), false);
-    oled_write_ln_P(PSTR("MASTER"), false);
-    oled_write_ln_P(PSTR("ADDR 0x3C"), false);
-    oled_write_ln_P(PSTR("IC SH1106"), false);
-    oled_write_ln_P(PSTR("I2C GP0/GP1"), false);
+    oled_write_P(PSTR("Layer "), false);
+    oled_write_ln(layer_name(get_highest_layer(layer_state | default_layer_state)), false);
+
+    snprintf(keycode_hex, sizeof(keycode_hex), "0x%04X", last_keycode);
+
+    oled_write_P(PSTR("Key   "), false);
+    oled_write_ln(keycode_hex, false);
+    oled_write_P(PSTR("Pos   "), false);
+    oled_write(get_u8_str(last_row, ' '), false);
+    oled_write_P(PSTR(","), false);
+    oled_write_ln(get_u8_str(last_col, ' '), false);
+
     return false;
 }
 #endif
