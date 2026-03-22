@@ -4,3 +4,4 @@ PLATFORM = rp2040
 PYTHON = python
 # No ChibiOS or TMK dependencies for RP2040
 STRICT = no
+EXTRAFLAGS += -Wno-error
