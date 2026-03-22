@@ -224,7 +224,7 @@ static void render_selector(void) {
 bool oled_task_user(void) {
     char keycode_hex[8];
 
-    oled_clear();
+    oled_set_cursor(0, 0);
     oled_write_P(PSTR("Layer "), false);
     oled_write_ln(layer_name(visual_layer()), false);
 

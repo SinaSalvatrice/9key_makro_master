@@ -1,5 +1,7 @@
 #include QMK_KEYBOARD_H
 
+#include <stdio.h>
+
 static uint16_t last_keycode = KC_NO;
 static uint8_t  last_row     = 0;
 static uint8_t  last_col     = 0;
@@ -31,7 +33,7 @@ oled_rotation_t oled_init_user(oled_rotation_t rotation) {
 bool oled_task_user(void) {
     char keycode_hex[8];
 
-    oled_clear();
+    oled_set_cursor(0, 0);
     oled_write_P(PSTR("Layer "), false);
     oled_write_ln(layer_name(get_highest_layer(layer_state | default_layer_state)), false);
 
