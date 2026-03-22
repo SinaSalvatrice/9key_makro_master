@@ -16,10 +16,6 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 
 #ifdef RGBLIGHT_ENABLE
 void keyboard_post_init_user(void) {
-    // Initialize OLED power pin
-    gpio_set_pin_output(GP25);
-    gpio_write_pin_high(GP25);
-
     rgblight_enable_noeeprom();
     rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
     rgblight_set_speed_noeeprom(128);
