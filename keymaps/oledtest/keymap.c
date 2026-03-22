@@ -263,8 +263,8 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (record->event.pressed) {
         last_keycode = keycode;
-        last_row     = record->event.key.row;
-        last_col     = record->event.key.col;
+        last_row     = record->event.row;
+        last_col     = record->event.col;
     }
     return true;
 }
