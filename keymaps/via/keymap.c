@@ -1,7 +1,5 @@
 #include QMK_KEYBOARD_H
-
 #include <stdio.h>
-
 #include "gpio.h"
 
 enum layers {
@@ -31,22 +29,14 @@ static uint8_t visual_layer(void) {
 
 static const char *layer_name(uint8_t layer) {
     switch (layer) {
-        case _BASE:
-            return "BASE";
-        case _NAV:
-            return "NAV";
-        case _EDIT:
-            return "EDIT";
-        case _MEDIA:
-            return "MEDIA";
-        case _FN:
-            return "FN";
-        case _RGB:
-            return "RGB";
-        case _SELECT:
-            return "SELECT";
-        default:
-            return "UNK";
+        case _BASE:   return "BASE";
+        case _NAV:    return "NAV";
+        case _EDIT:   return "EDIT";
+        case _MEDIA:  return "MEDIA";
+        case _FN:     return "FN";
+        case _RGB:    return "RGB";
+        case _SELECT: return "SELECT";
+        default:      return "UNK";
     }
 }
 
@@ -95,72 +85,11 @@ static void refresh_feedback(void) {
     apply_layer_rgb(visual_layer());
 }
 
-static void begin_selector(void) {
-    if (selector_active) {
-        return;
-    }
-
-    selector_origin = active_layer();
-    if (selector_origin == _SELECT) {
-        selector_origin = _BASE;
-    }
-
-    selector_target = selector_origin;
-    selector_active = true;
-    layer_on(_SELECT);
-    refresh_feedback();
-}
-
-static void finish_selector(void) {
-    if (!selector_active) {
-        return;
-    }
-
-    selector_active = false;
-    layer_off(_SELECT);
-    layer_move(selector_target);
-    refresh_feedback();
-}
-
-static void rotate_selector(bool clockwise) {
-    if (clockwise) {
-        selector_target = (selector_target + 1) % _SELECT;
-    } else {
-        selector_target = (selector_target == _BASE) ? (_SELECT - 1) : (selector_target - 1);
-    }
-}
-
-void keyboard_post_init_user(void) {
-    gpio_set_pin_input_high(ENCODER_BTN_PIN);
-
-    // Initialize OLED power pin
-    gpio_set_pin_output(GP25);
-    gpio_write_pin_high(GP25);
-
-    refresh_feedback();
-}
-
 layer_state_t layer_state_set_user(layer_state_t state) {
     if (!selector_active) {
         apply_layer_rgb(get_highest_layer(state | default_layer_state));
     }
-
     return state;
-}
-
-void matrix_scan_user(void) {
-    static bool was_pressed = false;
-    bool        pressed     = gpio_read_pin(ENCODER_BTN_PIN) == 0;
-
-    if (pressed && !was_pressed) {
-        begin_selector();
-    }
-
-    if (!pressed && was_pressed) {
-        finish_selector();
-    }
-
-    was_pressed = pressed;
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
@@ -169,44 +98,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         last_row     = record->event.key.row;
         last_col     = record->event.key.col;
     }
-
     return true;
-}
-
-bool encoder_update_user(uint8_t index, bool clockwise) {
-    (void)index;
-
-    if (selector_active) {
-        rotate_selector(clockwise);
-        return false;
-    }
-
-    switch (active_layer()) {
-        case _BASE:
-            clockwise ? tap_code(MS_WHLU) : tap_code(MS_WHLD);
-            break;
-        case _NAV:
-            clockwise ? tap_code16(LGUI(KC_TAB)) : tap_code16(LALT(KC_TAB));
-            break;
-        case _EDIT:
-            clockwise ? tap_code(KC_RGHT) : tap_code(KC_LEFT);
-            break;
-        case _MEDIA:
-            clockwise ? tap_code(KC_VOLU) : tap_code(KC_VOLD);
-            break;
-        case _FN:
-            clockwise ? tap_code(KC_RGHT) : tap_code(KC_LEFT);
-            break;
-        case _RGB:
-#ifdef RGBLIGHT_ENABLE
-            clockwise ? rgblight_increase_val_noeeprom() : rgblight_decrease_val_noeeprom();
-#endif
-            break;
-        default:
-            break;
-    }
-
-    return false;
 }
 
 #ifdef OLED_ENABLE
@@ -250,40 +142,142 @@ bool oled_task_user(void) {
 }
 #endif
 
+void keyboard_post_init_user(void) {
+    gpio_set_pin_input_high(ENCODER_BTN_PIN);
+
+    // OLED power pin
+    gpio_set_pin_output(GP25);
+    gpio_write_pin_high(GP25);
+
+    refresh_feedback();
+}
+
+static void begin_selector(void) {
+    if (selector_active) {
+        return;
+    }
+
+    selector_origin = active_layer();
+    if (selector_origin == _SELECT) {
+        selector_origin = _BASE;
+    }
+
+    selector_target = selector_origin;
+    selector_active = true;
+    layer_on(_SELECT);
+    refresh_feedback();
+}
+
+static void finish_selector(void) {
+    if (!selector_active) {
+        return;
+    }
+
+    selector_active = false;
+    layer_off(_SELECT);
+    layer_move(selector_target);
+    refresh_feedback();
+}
+
+static void rotate_selector(bool clockwise) {
+    if (clockwise) {
+        selector_target = (selector_target + 1) % _SELECT;
+    } else {
+        selector_target = (selector_target == _BASE) ? (_SELECT - 1) : (selector_target - 1);
+    }
+}
+
+void matrix_scan_user(void) {
+    static bool was_pressed = false;
+    bool pressed = gpio_read_pin(ENCODER_BTN_PIN) == 0;
+
+    if (pressed && !was_pressed) {
+        begin_selector();
+    }
+
+    if (!pressed && was_pressed) {
+        finish_selector();
+    }
+
+    was_pressed = pressed;
+}
+
+bool encoder_update_user(uint8_t index, bool clockwise) {
+    (void)index;
+
+    if (selector_active) {
+        rotate_selector(clockwise);
+        return false;
+    }
+
+    switch (active_layer()) {
+        case _BASE:
+            clockwise ? tap_code(MS_WHLU) : tap_code(MS_WHLD);
+            break;
+        case _NAV:
+            clockwise ? tap_code16(LGUI(KC_TAB)) : tap_code16(LALT(KC_TAB));
+            break;
+        case _EDIT:
+            clockwise ? tap_code(KC_RGHT) : tap_code(KC_LEFT);
+            break;
+        case _MEDIA:
+            clockwise ? tap_code(KC_VOLU) : tap_code(KC_VOLD);
+            break;
+        case _FN:
+            clockwise ? tap_code(KC_RGHT) : tap_code(KC_LEFT);
+            break;
+        case _RGB:
+#ifdef RGBLIGHT_ENABLE
+            clockwise ? rgblight_increase_val_noeeprom() : rgblight_decrease_val_noeeprom();
+#endif
+            break;
+        default:
+            break;
+    }
+
+    return false;
+}
+
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_BASE] = LAYOUT(
-        LGUI(KC_TAB), KC_UP,           LALT(KC_TAB),
-        KC_LEFT,      KC_ENT,          KC_RGHT,
-        LCTL(KC_Z),   KC_DOWN,         LCTL(KC_R)
+        KC_1,         KC_2,        KC_3,
+        KC_4,         MO(_SELECT), KC_6,
+        KC_7,         KC_8,        KC_9
     ),
+
     [_NAV] = LAYOUT(
-        LGUI(KC_TAB), KC_UP,           LALT(KC_TAB),
-        KC_LEFT,      KC_ENT,          KC_RGHT,
-        LCTL(KC_Z),   KC_DOWN,         LCTL(KC_R)
+        KC_LEFT, KC_UP,   KC_RGHT,
+        KC_HOME, KC_ENT,  KC_END,
+        KC_PGDN, KC_DOWN, KC_PGUP
     ),
+
     [_EDIT] = LAYOUT(
-        LCTL(KC_A),        LCTL(KC_C),   LCTL(KC_V),
-        LCTL(KC_X),        LCTL(KC_ENT), KC_NO,
-        LCTL(LSFT(KC_Z)),  KC_SPC,       KC_BSPC
+        LCTL(KC_Z), LCTL(KC_C), LCTL(KC_V),
+        LCTL(KC_X), KC_ENT,     KC_BSPC,
+        LCTL(KC_A), KC_SPC,     LCTL(LSFT(KC_Z))
     ),
+
     [_MEDIA] = LAYOUT(
-        KC_MPRV, KC_MSEL, KC_MNXT,
-        KC_MRWD, KC_MPLY, KC_MFFD,
-        KC_DOWN, KC_MSTP, KC_UP
+        KC_MPRV, KC_MPLY, KC_MNXT,
+        KC_MUTE, KC_MSTP, KC_VOLU,
+        KC_NO,   KC_NO,   KC_VOLD
     ),
+
     [_FN] = LAYOUT(
         KC_F13, KC_F14, KC_F15,
         KC_F16, KC_F17, KC_F18,
         KC_F19, KC_F20, KC_F21
     ),
+
     [_RGB] = LAYOUT(
-        UG_SPDU, UG_SPDD, UG_TOGG,
-        UG_HUEU, UG_HUED, UG_VALU,
-        UG_SATU, UG_SATD, UG_VALD
+        UG_TOGG, UG_HUEU, UG_HUED,
+        UG_SATU, UG_VALU, UG_VALD,
+        UG_SATD, UG_NEXT, UG_PREV
     ),
+
     [_SELECT] = LAYOUT(
         TO(_NAV),  TO(_EDIT), TO(_MEDIA),
-        TO(_FN),   TO(_BASE), TO(_RGB),
+        TO(_FN),   KC_TRNS,   TO(_RGB),
         KC_NO,     KC_NO,     KC_NO
-    ),
+    )
 };
