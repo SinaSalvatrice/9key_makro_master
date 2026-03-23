@@ -58,15 +58,43 @@ bool oled_task_user(void) {
 }
 #endif
 
+
+
+static const char *layer_name(uint8_t layer) {
+    switch (layer) {
+        case _BASE:   return "BASE";
+        case _NAV:    return "NAV";
+        case _EDIT:   return "EDIT";
+        case _MEDIA:  return "MEDIA";
+        case _FN:     return "FN";
+        case _RGB:    return "RGB";
+        case _SELECT: return "SELECT";
+        default:      return "UNK";
+    }
+}
+
+#ifdef OLED_ENABLE
+oled_rotation_t oled_init_user(oled_rotation_t rotation) {
+    return rotation;
+}
+
+bool oled_task_user(void) {
+    oled_clear();
+    oled_write_P(PSTR("Layer "), false);
+    oled_write_ln(layer_name(get_highest_layer(layer_state | default_layer_state)), false);
+    return false;
+}
+#endif
+
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_BASE] = LAYOUT(
-        KC_1, KC_2, KC_3,
-        KC_4, KC_5, KC_6,
-        KC_7, KC_8, KC_9
+        KC_1,         KC_2,        KC_3,
+        KC_4,         MO(_SELECT), KC_6,
+        KC_7,         KC_8,        KC_9
     ),
 
     [_NAV] = LAYOUT(
-        MO(_SELECT), KC_UP,   KC_RGHT,
+        KC_LEFT, KC_UP,   KC_RGHT,
         KC_HOME, KC_ENT,  KC_END,
         KC_PGDN, KC_DOWN, KC_PGUP
     ),
@@ -96,8 +124,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 
     [_SELECT] = LAYOUT(
-        KC_TRNS,  TO(_EDIT),  TO(_MEDIA),
-        TO(_FN),   TO(_BASE),  TO(_RGB),
-        TO(_NAV),     KC_NO,      KC_NO
+        TO(_NAV),  TO(_EDIT), TO(_MEDIA),
+        TO(_FN),   KC_TRNS,   TO(_RGB),
+        KC_NO,     KC_NO,     KC_NO
     )
 };
