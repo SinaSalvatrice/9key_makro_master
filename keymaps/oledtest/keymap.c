@@ -282,16 +282,4 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_NO,     KC_NO,     KC_NO
     ),
 };
-    KC_7, KC_8, KC_9
-
-),    /////////////////////okay, wenn ich in diese keymap erweitern will, und um die funktionen der zerlegten  keymap einbauen will, wie sollte ich vorgehen? weil wenn ich das über codex mache, kommt immer ///////////// Compiling: quantum/keymap_introspection.c                                                           [ERRORS]
-
-|
-
-|
-
-|
-
-gmake: *** [builddefs/common_rules.mk:362: .build/obj_9key_makro_master_oledtest/quantum/keymap_introspection.o] Error 1
-
-Error: Process completed with exi}; ///////////////
+    
