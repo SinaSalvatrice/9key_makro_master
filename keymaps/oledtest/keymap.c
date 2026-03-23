@@ -1,4 +1,6 @@
 #include QMK_KEYBOARD_H
+#include <stdio.h>
+#include "gpio.h"
 
 enum layers {
     _BASE,
@@ -27,22 +29,14 @@ static uint8_t visual_layer(void) {
 
 static const char *layer_name(uint8_t layer) {
     switch (layer) {
-        case _BASE:
-            return "BASE";
-        case _NAV:
-            return "NAV";
-        case _EDIT:
-            return "EDIT";
-        case _MEDIA:
-            return "MEDIA";
-        case _FN:
-            return "FN";
-        case _RGB:
-            return "RGB";
-        case _SELECT:
-            return "SELECT";
-        default:
-            return "UNK";
+        case _BASE:   return "BASE";
+        case _NAV:    return "NAV";
+        case _EDIT:   return "EDIT";
+        case _MEDIA:  return "MEDIA";
+        case _FN:     return "FN";
+        case _RGB:    return "RGB";
+        case _SELECT: return "SELECT";
+        default:      return "UNK";
     }
 }
 
@@ -95,7 +89,6 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     if (!selector_active) {
         apply_layer_rgb(get_highest_layer(state | default_layer_state));
     }
-
     return state;
 }
 
@@ -105,7 +98,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         last_row     = record->event.key.row;
         last_col     = record->event.key.col;
     }
-
     return true;
 }
 
@@ -153,7 +145,7 @@ bool oled_task_user(void) {
 void keyboard_post_init_user(void) {
     gpio_set_pin_input_high(ENCODER_BTN_PIN);
 
-    // Initialize OLED power pin
+    // OLED power pin
     gpio_set_pin_output(GP25);
     gpio_write_pin_high(GP25);
 
@@ -197,7 +189,7 @@ static void rotate_selector(bool clockwise) {
 
 void matrix_scan_user(void) {
     static bool was_pressed = false;
-    bool        pressed     = gpio_read_pin(ENCODER_BTN_PIN) == 0;
+    bool pressed = gpio_read_pin(ENCODER_BTN_PIN) == 0;
 
     if (pressed && !was_pressed) {
         begin_selector();
@@ -278,9 +270,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 
     [_RGB] = LAYOUT(
-        KC_NO, KC_NO, KC_NO,
-        KC_NO, KC_NO, KC_NO,
-        KC_NO, KC_NO, KC_NO
+        UG_TOGG, UG_HUEU, UG_HUED,
+        UG_SATU, UG_VALU, UG_VALD,
+        UG_SATD, UG_NEXT, UG_PREV
     ),
 
     [_SELECT] = LAYOUT(
@@ -288,19 +280,4 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         TO(_FN),   KC_TRNS,   TO(_RGB),
         KC_NO,     KC_NO,     KC_NO
     )
-
-};
-
-    #if defined(ENCODER_MAP_ENABLE)
-const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
-    [_BASE]   = { ENCODER_CCW_CW(MS_WHLD, MS_WHLU) },
-    [_NAV]    = { ENCODER_CCW_CW(KC_LEFT, KC_RGHT) },
-    [_EDIT]   = { ENCODER_CCW_CW(KC_LEFT, KC_RGHT) },
-    [_MEDIA]  = { ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },
-    [_FN]     = { ENCODER_CCW_CW(KC_DOWN, KC_UP) },
-    [_RGB]    = { ENCODER_CCW_CW(KC_NO,   KC_NO)   },
-    [_SELECT] = { ENCODER_CCW_CW(KC_NO,   KC_NO)   },
-
-    #endif
-
 };
