@@ -21,6 +21,4 @@ OLED_DRIVER = ssd1306
 OLED_COLUMN_OFFSET = 2
 OLED_TIMEOUT = 0
 OLED_DISPLAY_ADDRESS = 0x3C
-=======
 
->>>>>>> parent of 13c6584 (Update rules.mk)
