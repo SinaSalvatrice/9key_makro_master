@@ -170,6 +170,13 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         last_col     = record->event.key.col;
     }
 
+    if (selector_active && keycode >= TO(0) && keycode < TO(_SELECT)) {
+        if (record->event.pressed) {
+            selector_target = keycode & 0x1F; // lower 5 bits encode the layer in TO() keycodes
+        }
+        return false;
+    }
+
     return true;
 }
 
