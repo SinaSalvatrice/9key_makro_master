@@ -1,7 +1,5 @@
 #include QMK_KEYBOARD_H
-
 #include <stdio.h>
-
 #include "gpio.h"
 
 enum layers {
@@ -133,10 +131,6 @@ static void rotate_selector(bool clockwise) {
 void keyboard_post_init_user(void) {
     gpio_set_pin_input_high(ENCODER_BTN_PIN);
 
-    // Initialize OLED power pin
-    gpio_set_pin_output(GP25);
-    gpio_write_pin_high(GP25);
-
     refresh_feedback();
 }
 
@@ -228,7 +222,7 @@ static void render_selector(void) {
 bool oled_task_user(void) {
     char keycode_hex[8];
 
-    oled_clear();
+    oled_set_cursor(0, 0);
     oled_write_P(PSTR("Layer "), false);
     oled_write_ln(layer_name(visual_layer()), false);
 
