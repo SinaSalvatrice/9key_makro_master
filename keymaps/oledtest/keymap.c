@@ -10,17 +10,93 @@ enum layers {
     _SELECT,
 };
 
-static uint16_t last_keycode = KC_NO;
-static uint8_t  last_row     = 0;
-static uint8_t  last_col     = 0;
+static bool     selector_active = false;
+static uint8_t  selector_origin = _BASE;
+static uint8_t  selector_target = _BASE;
+static uint16_t last_keycode    = KC_NO;
+static uint8_t  last_row        = 0;
+static uint8_t  last_col        = 0;
+
+static uint8_t active_layer(void) {
+    return get_highest_layer(layer_state | default_layer_state);
+}
+
+static uint8_t visual_layer(void) {
+    return selector_active ? _SELECT : active_layer();
+}
 
 static const char *layer_name(uint8_t layer) {
     switch (layer) {
-        case 0:
+        case _BASE:
             return "BASE";
+        case _NAV:
+            return "NAV";
+        case _EDIT:
+            return "EDIT";
+        case _MEDIA:
+            return "MEDIA";
+        case _FN:
+            return "FN";
+        case _RGB:
+            return "RGB";
+        case _SELECT:
+            return "SELECT";
         default:
             return "UNK";
     }
+}
+
+static void apply_layer_rgb(uint8_t layer) {
+#ifdef RGBLIGHT_ENABLE
+    rgblight_enable_noeeprom();
+    rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
+
+    switch (layer) {
+        case _BASE:
+            rgblight_set_speed_noeeprom(128);
+            rgblight_sethsv_noeeprom(170, 255, 100);
+            break;
+        case _NAV:
+            rgblight_set_speed_noeeprom(128);
+            rgblight_sethsv_noeeprom(145, 220, 100);
+            break;
+        case _EDIT:
+            rgblight_set_speed_noeeprom(128);
+            rgblight_sethsv_noeeprom(50, 255, 100);
+            break;
+        case _MEDIA:
+            rgblight_set_speed_noeeprom(144);
+            rgblight_sethsv_noeeprom(210, 180, 100);
+            break;
+        case _FN:
+            rgblight_set_speed_noeeprom(128);
+            rgblight_sethsv_noeeprom(20, 255, 100);
+            break;
+        case _RGB:
+            rgblight_set_speed_noeeprom(128);
+            rgblight_sethsv_noeeprom(192, 255, 100);
+            break;
+        case _SELECT:
+        default:
+            rgblight_set_speed_noeeprom(192);
+            rgblight_sethsv_noeeprom(0, 255, 100);
+            break;
+    }
+#else
+    (void)layer;
+#endif
+}
+
+static void refresh_feedback(void) {
+    apply_layer_rgb(visual_layer());
+}
+
+layer_state_t layer_state_set_user(layer_state_t state) {
+    if (!selector_active) {
+        apply_layer_rgb(get_highest_layer(state | default_layer_state));
+    }
+
+    return state;
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
@@ -38,12 +114,28 @@ oled_rotation_t oled_init_user(oled_rotation_t rotation) {
     return rotation;
 }
 
+static void render_selector(void) {
+    oled_write_ln_P(PSTR("BAS NAV EDT"), false);
+    oled_write_ln_P(PSTR("MED FN  RGB"), false);
+    oled_write_P(PSTR("SEL -> "), false);
+    oled_write_ln(layer_name(selector_target), false);
+    oled_write_P(PSTR("POS "), false);
+    oled_write(get_u8_str(last_row, ' '), false);
+    oled_write_P(PSTR(","), false);
+    oled_write_ln(get_u8_str(last_col, ' '), false);
+}
+
 bool oled_task_user(void) {
     char keycode_hex[8];
 
     oled_clear();
     oled_write_P(PSTR("Layer "), false);
-    oled_write_ln(layer_name(get_highest_layer(layer_state | default_layer_state)), false);
+    oled_write_ln(layer_name(visual_layer()), false);
+
+    if (selector_active) {
+        render_selector();
+        return false;
+    }
 
     snprintf(keycode_hex, sizeof(keycode_hex), "0x%04X", last_keycode);
 
@@ -153,32 +245,6 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 
     return false;
 }
-
-static const char *layer_name(uint8_t layer) {
-    switch (layer) {
-        case _BASE:   return "BASE";
-        case _NAV:    return "NAV";
-        case _EDIT:   return "EDIT";
-        case _MEDIA:  return "MEDIA";
-        case _FN:     return "FN";
-        case _RGB:    return "RGB";
-        case _SELECT: return "SELECT";
-        default:      return "UNK";
-    }
-}
-
-#ifdef OLED_ENABLE
-oled_rotation_t oled_init_user(oled_rotation_t rotation) {
-    return rotation;
-}
-
-bool oled_task_user(void) {
-    oled_clear();
-    oled_write_P(PSTR("Layer "), false);
-    oled_write_ln(layer_name(get_highest_layer(layer_state | default_layer_state)), false);
-    return false;
-}
-#endif
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_BASE] = LAYOUT(
