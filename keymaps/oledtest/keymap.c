@@ -96,8 +96,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 
     [_SELECT] = LAYOUT(
-        TO(_NAV),  TO(_EDIT),  TO(_MEDIA),
+        KC_TRNS,  TO(_EDIT),  TO(_MEDIA),
         TO(_FN),   TO(_BASE),  TO(_RGB),
-        KC_NO,     KC_NO,      KC_NO
+        TO(_NAV),     KC_NO,      KC_NO
     )
 };
