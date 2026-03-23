@@ -106,13 +106,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         last_col     = record->event.key.col;
     }
 
-    if (selector_active && keycode >= TO(0) && keycode < TO(_SELECT)) {
-        if (record->event.pressed) {
-            selector_target = keycode & 0x1F; // lower 5 bits encode the layer in TO() keycodes
-        }
-        return false;
-    }
-
     return true;
 }
 
@@ -298,7 +291,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 };
 
-#if defined(ENCODER_MAP_ENABLE)
+    #if defined(ENCODER_MAP_ENABLE)
 const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
     [_BASE]   = { ENCODER_CCW_CW(MS_WHLD, MS_WHLU) },
     [_NAV]    = { ENCODER_CCW_CW(KC_LEFT, KC_RGHT) },
@@ -307,5 +300,7 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
     [_FN]     = { ENCODER_CCW_CW(KC_DOWN, KC_UP) },
     [_RGB]    = { ENCODER_CCW_CW(KC_NO,   KC_NO)   },
     [_SELECT] = { ENCODER_CCW_CW(KC_NO,   KC_NO)   },
+
+    #endif
+
 };
-#endif
