@@ -6,6 +6,7 @@ CONSOLE_ENABLE = yes
 # No ChibiOS or TMK dependencies for RP2040
 STRICT = no
 EXTRAFLAGS += -Wno-error
+<<<<<<< HEAD
 MOUSEKEY_ENABLE = yes
 EXTRAKEY_ENABLE = yes
 ENCODER_ENABLE = yes
@@ -20,3 +21,8 @@ OLED_DRIVER = sh1106
 OLED_COLUMN_OFFSET = 2
 OLED_TIMEOUT = 0
 OLED_DISPLAY_ADDRESS = 0x3C
+=======
+OLED_ENABLE = yes
+I2C_DRIVER_REQUIRED = yes
+OLED_DRIVER = ssd1306
+>>>>>>> parent of 13c6584 (Update rules.mk)
