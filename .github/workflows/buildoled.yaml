@@ -1,4 +1,4 @@
-name: Build 9key_makro_master
+name: Build 9key_makro_master olettest
 
 on:
   workflow_dispatch:
@@ -58,7 +58,7 @@ jobs:
           find "$QMK_HOME" -type f -name "${KEYBOARD}_${KEYMAP}.uf2" -exec cp {} "$GITHUB_WORKSPACE/artifacts/" \;
           test -f "$GITHUB_WORKSPACE/artifacts/${KEYBOARD}_${KEYMAP}.uf2"
 
-      - name: Upload firmware
+      - name: Upload firmware oledtest
         uses: actions/upload-artifact@v4
         with:
           name: 9key_makro_master_oledtest_uf2
