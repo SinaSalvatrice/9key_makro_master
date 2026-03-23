@@ -145,6 +145,7 @@ bool oled_task_user(void) {
 void keyboard_post_init_user(void) {
     gpio_set_pin_input_high(ENCODER_BTN_PIN);
 
+    // OLED power pin
     gpio_set_pin_output(GP25);
     gpio_write_pin_high(GP25);
 
