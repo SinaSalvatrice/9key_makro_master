@@ -6,6 +6,3 @@ CONSOLE_ENABLE = yes
 # No ChibiOS or TMK dependencies for RP2040
 STRICT = no
 EXTRAFLAGS += -Wno-error
-OLED_ENABLE = yes
-I2C_DRIVER_REQUIRED = yes
-OLED_DRIVER = ssd1306
