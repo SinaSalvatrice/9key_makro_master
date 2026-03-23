@@ -12,43 +12,38 @@ enum layers {
     _SELECT,
 };
 
-#ifdef OLED_ENABLE
-oled_rotation_t oled_init_user(oled_rotation_t rotation) {
-    return rotation;
+static bool     selector_active = false;
+static uint8_t  selector_origin = _BASE;
+static uint8_t  selector_target = _BASE;
+static uint16_t last_keycode    = KC_NO;
+static uint8_t  last_row        = 0;
+static uint8_t  last_col        = 0;
+
+static uint8_t active_layer(void) {
+    return get_highest_layer(layer_state | default_layer_state);
 }
 
-static void render_selector(void) {
-    oled_write_ln_P(PSTR("BAS NAV EDT"), false);
-    oled_write_ln_P(PSTR("MED FN  RGB"), false);
-    oled_write_P(PSTR("SEL -> "), false);
-    oled_write_ln(layer_name(selector_target), false);
-    oled_write_P(PSTR("POS "), false);
-    oled_write(get_u8_str(last_row, ' '), false);
-    oled_write_P(PSTR(","), false);
-    oled_write_ln(get_u8_str(last_col, ' '), false);
+static uint8_t visual_layer(void) {
+    return selector_active ? _SELECT : active_layer();
 }
 
-bool oled_task_user(void) {
-    char keycode_hex[8];
-
-    oled_clear();
-    oled_write_P(PSTR("Layer "), false);
-    oled_write_ln(layer_name(visual_layer()), false);
-
-    if (selector_active) {
-        render_selector();
-        return false;
+static const char *layer_name(uint8_t layer) {
+    switch (layer) {
+        case _BASE:
+            return "BASE";
+        case _NAV:
+            return "NAV";
+        case _EDIT:
+            return "EDIT";
+        case _MEDIA:
+            return "MEDIA";
+        case _FN:
+            return "FN";
+        case _RGB:
+            return "RGB";
+        case _SELECT:
+            return "SELECT";
+        default:
+            return "UNK";
     }
-
-    snprintf(keycode_hex, sizeof(keycode_hex), "0x%04X", last_keycode);
-
-    oled_write_P(PSTR("Key   "), false);
-    oled_write_ln(keycode_hex, false);
-    oled_write_P(PSTR("Pos   "), false);
-    oled_write(get_u8_str(last_row, ' '), false);
-    oled_write_P(PSTR(","), false);
-    oled_write_ln(get_u8_str(last_col, ' '), false);
-
-    return false;
 }
-#endif
