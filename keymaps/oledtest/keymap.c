@@ -1,5 +1,15 @@
 #include QMK_KEYBOARD_H
 
+enum layers {
+    _BASE,
+    _NAV,
+    _EDIT,
+    _MEDIA,
+    _FN,
+    _RGB,
+    _SELECT,
+};
+
 static uint16_t last_keycode = KC_NO;
 static uint8_t  last_row     = 0;
 static uint8_t  last_col     = 0;
