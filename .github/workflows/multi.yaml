@@ -1,0 +1,34 @@
+name: Build multiple keymaps
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        keymap: [bringup, oledtest, rgbtest]
+
+    container: ghcr.io/qmk/qmk_cli:latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Build firmware
+        run: qmk compile -kb 9key_makro_master -km ${{ matrix.keymap }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ matrix.keymap }}
+          path: |
+            .build/*.uf2
+            .build/*.bin
+            .build/*.hex
+Was das macht
+matrix.keymap läuft einmal für bringup
