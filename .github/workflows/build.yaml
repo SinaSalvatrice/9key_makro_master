@@ -45,6 +45,9 @@ jobs:
           find "$QMK_HOME/keyboards/$KEYBOARD" -mindepth 1 -maxdepth 1 ! -name ".git" -exec rm -rf {} +
           cp -R "$GITHUB_WORKSPACE/." "$QMK_HOME/keyboards/$KEYBOARD/"
           rm -rf "$QMK_HOME/keyboards/$KEYBOARD/.git" "$QMK_HOME/keyboards/$KEYBOARD/.github"
+          if [ -d "$GITHUB_WORKSPACE/quantum" ]; then
+            cp -R "$GITHUB_WORKSPACE/quantum/." "$QMK_HOME/quantum/"
+          fi
 
       - name: Build firmware
         run: |
