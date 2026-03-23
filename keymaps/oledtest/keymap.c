@@ -223,6 +223,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_NO,     KC_NO,     KC_NO
     )
 
+};
 
     #if defined(ENCODER_MAP_ENABLE)
 const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
@@ -233,9 +234,7 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
     [_FN]     = { ENCODER_CCW_CW(KC_DOWN, KC_UP) },
     [_RGB]    = { ENCODER_CCW_CW(KC_NO,   KC_NO)   },
     [_SELECT] = { ENCODER_CCW_CW(KC_NO,   KC_NO)   },
-};
 
-#endif
-
+    #endif
 
 };
