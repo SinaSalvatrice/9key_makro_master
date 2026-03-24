@@ -1,4 +1,4 @@
-#include "../via/keymap.c"
+
 #include QMK_KEYBOARD_H
 #include <stdio.h>
 #include "gpio.h"
