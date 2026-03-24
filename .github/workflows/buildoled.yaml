@@ -1,4 +1,4 @@
-name: Build 9key_makro_master olettest
+name: Build 9key_makro_master oledtest
 
 on:
   workflow_dispatch:
