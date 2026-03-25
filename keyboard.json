@@ -4,7 +4,7 @@
     "maintainer": "Sina",
     "processor": "RP2040",
     "bootloader": "rp2040",
-    "board": "QMK_PM2040",
+    "board": "QMK_BLOK",
     "diode_direction": "ROW2COL",
     "matrix_pins": {
         "rows": ["GP2", "GP4", "GP3"],
