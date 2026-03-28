@@ -63,9 +63,9 @@ enum layers {
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_BASE] = LAYOUT(
-        LGUI(KC_TAB),  KC_UP,    LALT(KC_TAB),
-        KC_LEFT,       KC_ENT,   KC_RGHT,
-        LCTL(KC_Z),    KC_DOWN,  LCTL(KC_R)
+        LGUI(KC_TAB),  KC_UP,         LALT(KC_TAB),
+        KC_LEFT,       MO(_SELECT),   KC_RGHT,
+        LCTL(KC_Z),    KC_DOWN,       LCTL(KC_R)
     ),
     [_NAV] = LAYOUT(
         LGUI(KC_TAB),  KC_UP,    LALT(KC_TAB),
