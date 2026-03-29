@@ -225,8 +225,8 @@ static void render_boot(void) {
     write_line(0, "");
     write_line(1, "");
     write_line(2, line2);
-    write_line(3, t >= BOOT_STEP_MS * 2 ? "         RO" : "");
-    write_line(4, t >= BOOT_STEP_MS * 2 ? "         OT" : "");
+    write_line(3, t >= BOOT_STEP_MS * 2 ? "      ROOT" : "");
+    write_line(4, "");
     write_line(5, "");
     write_line(6, "");
     write_line(7, "");
