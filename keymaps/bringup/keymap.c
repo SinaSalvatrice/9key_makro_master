@@ -28,7 +28,7 @@ static const char *layer_name(uint8_t l) {
         case _DEV2:   return "DEV2";
         case _RGB:    return "RGB";
         case _SELECT: return "SELECT";
-        default:      return "???";
+        default:      return "BASE";
     }
 }
 
@@ -53,6 +53,7 @@ static uint16_t last_keycode   = KC_NO;
 static uint8_t  last_row       = 0;
 static uint8_t  last_col       = 0;
 static bool     encoder_btn_held = false;
+static bool     oled_needs_clear = true;
 
 static uint8_t active_layer(void) {
     return get_highest_layer(layer_state | default_layer_state);
@@ -170,6 +171,7 @@ void matrix_scan_user(void) {
 
     if (pressed != was_pressed) {
         encoder_btn_held = pressed;
+        oled_needs_clear = true;  // clear once on toggle
     }
     was_pressed = pressed;
 }
@@ -198,17 +200,16 @@ oled_rotation_t oled_init_user(oled_rotation_t rotation) {
 
 // ── Boot animation state ────────────────────────────────────
 static uint32_t boot_timer   = 0;
-static uint8_t  boot_phase   = 0;  // 0-3 = animation, 4 = done
+static uint8_t  boot_phase   = 0;  // 0..3 = animation phases, 4 = done
 #define BOOT_PHASE_DELAY 600        // ms per phase
 
 static void render_boot(void) {
     if (boot_phase == 0 && boot_timer == 0) {
+        oled_clear();  // one-time clear at start
         boot_timer = timer_read32();
     }
 
     uint32_t elapsed = timer_elapsed32(boot_timer);
-
-    oled_clear();
 
     // Phase 0: "9KEY" centered (always shown)
     oled_set_cursor(8, 2);
@@ -226,7 +227,8 @@ static void render_boot(void) {
     }
     // Phase 3: hold complete logo briefly, then transition
     if (elapsed >= BOOT_PHASE_DELAY * 4) {
-        boot_phase = 4;  // done
+        boot_phase = 4;
+        oled_needs_clear = true;  // clear once when switching to normal view
     }
 }
 
@@ -251,7 +253,7 @@ static void render_header(uint8_t cur_layer) {
 
     snprintf(line, sizeof(line), "%-5s [%-6s] %5s", prev, curr, next);
     oled_set_cursor(0, 0);
-    oled_write(line, false);
+    oled_write_ln(line, false);
 }
 
 // ── Render: key-press info (normal view) ────────────────────
@@ -260,24 +262,24 @@ static void render_keyinfo(void) {
 
     // Line 1: separator
     oled_set_cursor(0, 1);
-    oled_write_P(PSTR("---------------------"), false);
+    oled_write_ln_P(PSTR("---------------------"), false);
 
     // Line 2: function / key name
     char label[18];
     get_key_label(last_keycode, label, sizeof(label));
-    snprintf(buf, sizeof(buf), "Key:  %s", label);
+    snprintf(buf, sizeof(buf), "Key:  %-15s", label);
     oled_set_cursor(0, 2);
-    oled_write(buf, false);
+    oled_write_ln(buf, false);
 
     // Line 3: raw keycode hex
     snprintf(buf, sizeof(buf), "Code: 0x%04X", last_keycode);
     oled_set_cursor(0, 3);
-    oled_write(buf, false);
+    oled_write_ln(buf, false);
 
     // Line 4: matrix position
     snprintf(buf, sizeof(buf), "Pos:  R%dC%d", last_row, last_col);
     oled_set_cursor(0, 4);
-    oled_write(buf, false);
+    oled_write_ln(buf, false);
 
     // Lines 5-7: blank
     oled_set_cursor(0, 5);
@@ -295,7 +297,7 @@ static void render_legend(uint8_t cur_layer) {
 
     // Line 1: separator
     oled_set_cursor(0, 1);
-    oled_write_P(PSTR("---------------------"), false);
+    oled_write_ln_P(PSTR("---------------------"), false);
 
     // 3 rows × 3 cols
     for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
@@ -310,12 +312,12 @@ static void render_legend(uint8_t cur_layer) {
 
         snprintf(line, sizeof(line), "%-7s%-7s%-7s", l0, l1, l2);
         oled_set_cursor(0, 2 + r);
-        oled_write(line, false);
+        oled_write_ln(line, false);
     }
 
     // Line 5: hint
     oled_set_cursor(0, 5);
-    oled_write_P(PSTR("  [Enc] = Legend"), false);
+    oled_write_ln_P(PSTR("  [Enc] = Legend"), false);
 
     oled_set_cursor(0, 6);
     oled_write_ln_P(PSTR(""), false);
@@ -331,7 +333,11 @@ bool oled_task_user(void) {
         return false;
     }
 
-    oled_clear();
+    // One-time clear when transitioning from boot or between modes
+    if (oled_needs_clear) {
+        oled_clear();
+        oled_needs_clear = false;
+    }
 
     uint8_t cur = active_layer();
     render_header(cur);
