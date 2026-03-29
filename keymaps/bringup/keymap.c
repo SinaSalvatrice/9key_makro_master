@@ -66,43 +66,43 @@ enum layers {
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     [_BASE] = LAYOUT(
-        KC_TRNS,                KC_UP,              LALT(KC_TAB),
+        MO(_SELECT),                KC_UP,              LALT(KC_TAB),
         KC_LEFT,                KC_LEFT_GUI,        KC_RGHT,
         LCTL(KC_Z),             KC_DOWN,            LCTL(KC_R)
     ),
 
     [_NAV] = LAYOUT(
-        KC_TRNS,                KC_UP,              LALT(KC_TAB),
+        MO(_SELECT),                KC_UP,              LALT(KC_TAB),
         KC_LEFT,                KC_ENT,             KC_RGHT,
         LCTL(KC_Z),             KC_DOWN,            LCTL(KC_R)
     ),
 
     [_EDIT] = LAYOUT(
-        KC_TRNS,                LCTL(KC_C),         LCTL(KC_V),
+        MO(_SELECT),                LCTL(KC_C),         LCTL(KC_V),
         LCTL(KC_X),             LCTL(KC_ENT),       KC_NO,
         LCTL(LSFT(KC_Z)),       KC_SPC,             KC_BSPC
     ),
 
     [_MEDIA] = LAYOUT(
-        KC_TRNS,                KC_MSEL,            KC_MNXT,
+        MO(_SELECT),                KC_MSEL,            KC_MNXT,
         KC_MRWD,                KC_MPLY,            KC_MFFD,
         KC_DOWN,                KC_MSTP,            KC_UP
     ),
 
    [_DEV] = LAYOUT(
-        KC_TRNS,                KC_NO,             KC_NO,
+        MO(_SELECT),                KC_NO,             KC_NO,
         KC_NO,                  KC_NO,             KC_NO,
         KC_NO,                  KC_NO,             KC_NO
     ),
 
     [_DEV2] = LAYOUT(
-        KC_TRNS,                TO(_EDIT),          TO(_MEDIA),
+        MO(_SELECT),                TO(_EDIT),          TO(_MEDIA),
         TO(_FN),                TO(_BASE),          KC_NO,
         KC_NO,                  KC_NO,              KC_NO
     ),
 
     [_FN] = LAYOUT(
-        KC_TRNS,                KC_F14,            KC_F15,
+        MO(_SELECT),                KC_F14,            KC_F15,
         KC_F16,                 KC_F17,            KC_F18,
         KC_F19,                 KC_F20,            KC_F21
     ),
@@ -116,7 +116,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_SELECT] = LAYOUT(
         KC_NO,                 TO(_BASE),           TO(_NAV),
         TO(_EDIT),             TO(_MEDIA),          TO(_RGB),
-        TO(_DEV),               TO(_DEV2),            TO(_FN)
+        TO(_DEV),               TO(_DEV2),          TO(_FN)
     ),
 };
 
