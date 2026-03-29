@@ -74,7 +74,7 @@ static uint8_t next_layer(uint8_t l) {
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     [_BASE] = LAYOUT(
-        MO(_SELECT),            KC_UP,              LALT(KC_TAB),
+        MO(_SELECT),            KC_UP,              KC_LEFT_GUI(KC_TAB),
         KC_LEFT,                KC_LEFT_GUI,        KC_RGHT,
         LCTL(KC_Z),             KC_DOWN,            LCTL(KC_R)
     ),
