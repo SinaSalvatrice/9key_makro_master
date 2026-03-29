@@ -49,11 +49,10 @@ static const char *layer_name_short(uint8_t l) {
 }
 
 // ── State tracked for OLED ──────────────────────────────────
-static uint16_t last_keycode   = KC_NO;
-static uint8_t  last_row       = 0;
-static uint8_t  last_col       = 0;
-static bool     encoder_btn_held = false;
-static bool     oled_needs_clear = true;
+static uint16_t last_keycode = KC_NO;
+static uint8_t  last_row     = 0;
+static uint8_t  last_col     = 0;
+static bool     legend_active = false;
 
 static uint8_t active_layer(void) {
     return get_highest_layer(layer_state | default_layer_state);
@@ -167,11 +166,10 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 // ── Encoder button via matrix_scan (GP10) ───────────────────
 void matrix_scan_user(void) {
     static bool was_pressed = false;
-    bool pressed = (gpio_read_pin(ENCODER_BTN_PIN) == 0);
+    bool        pressed     = (gpio_read_pin(ENCODER_BTN_PIN) == 0);
 
-    if (pressed != was_pressed) {
-        encoder_btn_held = pressed;
-        oled_needs_clear = true;  // clear once on toggle
+    if (pressed && !was_pressed) {
+        legend_active = !legend_active;  // toggle legend on press
     }
     was_pressed = pressed;
 }
@@ -198,151 +196,104 @@ oled_rotation_t oled_init_user(oled_rotation_t rotation) {
     return rotation;
 }
 
-// ── Boot animation state ────────────────────────────────────
-static uint32_t boot_timer   = 0;
-static uint8_t  boot_phase   = 0;  // 0..3 = animation phases, 4 = done
-#define BOOT_PHASE_DELAY 600        // ms per phase
-
-static void render_boot(void) {
-    if (boot_phase == 0 && boot_timer == 0) {
-        oled_clear();  // one-time clear at start
-        boot_timer = timer_read32();
-    }
-
-    uint32_t elapsed = timer_elapsed32(boot_timer);
-
-    // Phase 0: "9KEY" centered (always shown)
-    oled_set_cursor(8, 2);
-    oled_write_P(PSTR("I"), false);
-
-    // Phase 1: + "MAKRO"
-    if (elapsed >= BOOT_PHASE_DELAY) {
-        oled_set_cursor(7, 4);
-        oled_write_P(PSTR("AM"), false);
-    }
-    // Phase 2: + "MASTER"
-    if (elapsed >= BOOT_PHASE_DELAY * 2) {
-        oled_set_cursor(7, 6);
-        oled_write_P(PSTR("ROOT"), false);
-    }
-    // Phase 3: hold complete logo briefly, then transition
-    if (elapsed >= BOOT_PHASE_DELAY * 4) {
-        boot_phase = 4;
-        oled_needs_clear = true;  // clear once when switching to normal view
-    }
+// Write exactly 21 chars to one row — no stale pixels possible.
+static void write_line(uint8_t row, const char *str) {
+    char buf[22];
+    snprintf(buf, sizeof(buf), "%-21.21s", str);
+    oled_set_cursor(0, row);
+    oled_write(buf, false);
 }
 
-// ── Keycode short name (max 7 chars for grid cell) ──────────
+// ── Boot animation ───────────────────────────────────────────
+static uint32_t boot_start = 0;
+#define BOOT_TOTAL_MS 2400
+#define BOOT_STEP_MS   600
+
+static void render_boot(void) {
+    // |1 ensures boot_start is never 0 after init
+    if (boot_start == 0) boot_start = timer_read32() | 1;
+    uint32_t t = timer_elapsed32(boot_start);
+
+    // All 8 rows written every frame — no leftover boot pixels
+    write_line(0, "");
+    write_line(1, "");
+    write_line(2, "        9KEY");
+    write_line(3, t >= BOOT_STEP_MS     ? "       MAKRO" : "");
+    write_line(4, t >= BOOT_STEP_MS * 2 ? "      MASTER" : "");
+    write_line(5, "");
+    write_line(6, "");
+    write_line(7, "");
+}
+
+// ── Key label (max buflen-1 chars) ──────────────────────────
 static void get_key_label(uint16_t kc, char *buf, uint8_t buflen) {
-    const char *s = get_keycode_string(kc);
-    // Strip "KC_" prefix for brevity if present
-    if (s[0] == 'K' && s[1] == 'C' && s[2] == '_') {
-        s += 3;
+    if (kc == MO(_SELECT)) {
+        snprintf(buf, buflen, "SEL");
+        return;
     }
+    const char *s = get_keycode_string(kc);
+    if (s[0] == 'K' && s[1] == 'C' && s[2] == '_') s += 3;
     snprintf(buf, buflen, "%.*s", buflen - 1, s);
 }
 
-// ── Render the layer header line ────────────────────────────
-// Format:  "< NAV   [BASE]   EDIT >"
-// Line 0 of the OLED (21 chars wide)
-static void render_header(uint8_t cur_layer) {
+// ── Layer header (row 0): prev [CUR] next ───────────────────
+static void render_header(uint8_t layer) {
     char line[22];
-    const char *prev = layer_name_short(prev_layer(cur_layer));
-    const char *curr = layer_name(cur_layer);
-    const char *next = layer_name_short(next_layer(cur_layer));
-
-    snprintf(line, sizeof(line), "%-5s [%-6s] %5s", prev, curr, next);
-    oled_set_cursor(0, 0);
-    oled_write_ln(line, false);
+    const char *p = layer_name_short(prev_layer(layer));
+    const char *c = layer_name_short(layer);
+    const char *n = layer_name_short(next_layer(layer));
+    snprintf(line, sizeof(line), "%-5s [%-5s] %-5s", p, c, n);
+    write_line(0, line);
 }
 
-// ── Render: key-press info (normal view) ────────────────────
+// ── Normal view: last key info (rows 1–7) ───────────────────
 static void render_keyinfo(void) {
     char buf[22];
-
-    // Line 1: separator
-    oled_set_cursor(0, 1);
-    oled_write_ln_P(PSTR("---------------------"), false);
-
-    // Line 2: function / key name
-    char label[18];
+    char label[15];
     get_key_label(last_keycode, label, sizeof(label));
-    snprintf(buf, sizeof(buf), "Key:  %-15s", label);
-    oled_set_cursor(0, 2);
-    oled_write_ln(buf, false);
 
-    // Line 3: raw keycode hex
+    write_line(1, "---------------------");
+    snprintf(buf, sizeof(buf), "Key:  %.14s", label);
+    write_line(2, buf);
     snprintf(buf, sizeof(buf), "Code: 0x%04X", last_keycode);
-    oled_set_cursor(0, 3);
-    oled_write_ln(buf, false);
-
-    // Line 4: matrix position
-    snprintf(buf, sizeof(buf), "Pos:  R%dC%d", last_row, last_col);
-    oled_set_cursor(0, 4);
-    oled_write_ln(buf, false);
-
-    // Lines 5-7: blank
-    oled_set_cursor(0, 5);
-    oled_write_ln_P(PSTR(""), false);
-    oled_set_cursor(0, 6);
-    oled_write_ln_P(PSTR(""), false);
-    oled_set_cursor(0, 7);
-    oled_write_ln_P(PSTR(""), false);
+    write_line(3, buf);
+    snprintf(buf, sizeof(buf), "Pos:  R%uC%u", last_row, last_col);
+    write_line(4, buf);
+    write_line(5, "");
+    write_line(6, "");
+    write_line(7, "");
 }
 
-// ── Render: layer key legend (encoder btn held) ─────────────
-// Shows a 3×3 grid of short key labels for the current layer
-static void render_legend(uint8_t cur_layer) {
+// ── Legend view: 3×3 key grid (rows 1–7) ────────────────────
+static void render_legend(uint8_t layer) {
     char line[22];
+    write_line(1, "---------------------");
 
-    // Line 1: separator
-    oled_set_cursor(0, 1);
-    oled_write_ln_P(PSTR("---------------------"), false);
-
-    // 3 rows × 3 cols
     for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
-        uint16_t kc0 = keymaps[cur_layer][r][0];
-        uint16_t kc1 = keymaps[cur_layer][r][1];
-        uint16_t kc2 = keymaps[cur_layer][r][2];
-
         char l0[8], l1[8], l2[8];
-        get_key_label(kc0, l0, sizeof(l0));
-        get_key_label(kc1, l1, sizeof(l1));
-        get_key_label(kc2, l2, sizeof(l2));
-
+        get_key_label(keymaps[layer][r][0], l0, sizeof(l0));
+        get_key_label(keymaps[layer][r][1], l1, sizeof(l1));
+        get_key_label(keymaps[layer][r][2], l2, sizeof(l2));
         snprintf(line, sizeof(line), "%-7s%-7s%-7s", l0, l1, l2);
-        oled_set_cursor(0, 2 + r);
-        oled_write_ln(line, false);
+        write_line(2 + r, line);
     }
 
-    // Line 5: hint
-    oled_set_cursor(0, 5);
-    oled_write_ln_P(PSTR("  [Enc] = Legend"), false);
-
-    oled_set_cursor(0, 6);
-    oled_write_ln_P(PSTR(""), false);
-    oled_set_cursor(0, 7);
-    oled_write_ln_P(PSTR(""), false);
+    write_line(5, "  [Enc btn]=toggle");
+    write_line(6, "");
+    write_line(7, "");
 }
 
 // ── Main OLED task ──────────────────────────────────────────
 bool oled_task_user(void) {
-    // Boot animation first
-    if (boot_phase < 4) {
+    if (boot_start == 0 || timer_elapsed32(boot_start) < BOOT_TOTAL_MS) {
         render_boot();
         return false;
-    }
-
-    // One-time clear when transitioning from boot or between modes
-    if (oled_needs_clear) {
-        oled_clear();
-        oled_needs_clear = false;
     }
 
     uint8_t cur = active_layer();
     render_header(cur);
 
-    if (encoder_btn_held) {
+    if (legend_active) {
         render_legend(cur);
     } else {
         render_keyinfo();
