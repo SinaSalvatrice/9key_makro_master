@@ -206,20 +206,27 @@ static void write_line(uint8_t row, const char *str) {
 
 // ── Boot animation ───────────────────────────────────────────
 static uint32_t boot_start = 0;
-#define BOOT_TOTAL_MS 2400
-#define BOOT_STEP_MS   600
+#define BOOT_TOTAL_MS  2800
+#define BOOT_STEP_MS    400
 
 static void render_boot(void) {
-    // |1 ensures boot_start is never 0 after init
     if (boot_start == 0) boot_start = timer_read32() | 1;
     uint32_t t = timer_elapsed32(boot_start);
 
-    // All 8 rows written every frame — no leftover boot pixels
+    char line2[22];
+    // Phase 0: just "I"   Phase 1+: "I AM"
+    if (t >= BOOT_STEP_MS) {
+        snprintf(line2, sizeof(line2), "       I AM");
+    } else {
+        snprintf(line2, sizeof(line2), "         I");
+    }
+
+    // All 8 rows written every frame — no leftover pixels
     write_line(0, "");
     write_line(1, "");
-    write_line(2, "        9KEY");
-    write_line(3, t >= BOOT_STEP_MS     ? "       MAKRO" : "");
-    write_line(4, t >= BOOT_STEP_MS * 2 ? "      MASTER" : "");
+    write_line(2, line2);
+    write_line(3, t >= BOOT_STEP_MS * 2 ? "         RO" : "");
+    write_line(4, t >= BOOT_STEP_MS * 2 ? "         OT" : "");
     write_line(5, "");
     write_line(6, "");
     write_line(7, "");
