@@ -213,17 +213,17 @@ static void render_boot(void) {
 
     // Phase 0: "9KEY" centered (always shown)
     oled_set_cursor(8, 2);
-    oled_write_P(PSTR("9KEY"), false);
+    oled_write_P(PSTR("I"), false);
 
     // Phase 1: + "MAKRO"
     if (elapsed >= BOOT_PHASE_DELAY) {
         oled_set_cursor(7, 4);
-        oled_write_P(PSTR("MAKRO"), false);
+        oled_write_P(PSTR("AM"), false);
     }
     // Phase 2: + "MASTER"
     if (elapsed >= BOOT_PHASE_DELAY * 2) {
         oled_set_cursor(7, 6);
-        oled_write_P(PSTR("MASTER"), false);
+        oled_write_P(PSTR("ROOT"), false);
     }
     // Phase 3: hold complete logo briefly, then transition
     if (elapsed >= BOOT_PHASE_DELAY * 4) {
