@@ -215,10 +215,9 @@ static void render_boot(void) {
     // All 8 rows written every frame — no leftover pixels
     write_line(0, "");
     write_line(1, "");
-    write_line(2, "             I");
-    write_line(3, t >=  800 ? "            AM"  : "");
-    write_line(4, t >= 1200 ? "          ROOT"  : "");
-    write_line(5, "");
+    write_line(2, t >=  800 ? "          I AM" : "             I");
+    write_line(3, t >= 1200 ? "          ROOT" : "");
+    write_line(4, "");
     write_line(6, "");
     write_line(7, "");
 }
