@@ -66,43 +66,43 @@ enum layers {
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     [_BASE] = LAYOUT(
-        KEY_TRNS,               KC_UP,              LALT(KC_TAB),
+        KC_TRNS,                KC_UP,              LALT(KC_TAB),
         KC_LEFT,                KC_LEFT_GUI,        KC_RGHT,
         LCTL(KC_Z),             KC_DOWN,            LCTL(KC_R)
     ),
 
     [_NAV] = LAYOUT(
-        KEY_TRNS,               KC_UP,              LALT(KC_TAB),
+        KC_TRNS,                KC_UP,              LALT(KC_TAB),
         KC_LEFT,                KC_ENT,             KC_RGHT,
         LCTL(KC_Z),             KC_DOWN,            LCTL(KC_R)
     ),
 
     [_EDIT] = LAYOUT(
-        KEY_TRNS,               LCTL(KC_C),         LCTL(KC_V),
+        KC_TRNS,                LCTL(KC_C),         LCTL(KC_V),
         LCTL(KC_X),             LCTL(KC_ENT),       KC_NO,
         LCTL(LSFT(KC_Z)),       KC_SPC,             KC_BSPC
     ),
 
     [_MEDIA] = LAYOUT(
-        KEY_TRNS,               KC_MSEL,            KC_MNXT,
+        KC_TRNS,                KC_MSEL,            KC_MNXT,
         KC_MRWD,                KC_MPLY,            KC_MFFD,
         KC_DOWN,                KC_MSTP,            KC_UP
     ),
 
    [_DEV] = LAYOUT(
-        KEY_TRNS,               KC_NO,          TO(_MEDIA),
-        TO(_FN),                TO(_BASE),          KC_NO,
-        KC_NO,                  KC_NO,              KC_NO
+        KC_TRNS,                KC_NO,             KC_NO,
+        KC_NO,                  KC_NO,             KC_NO,
+        KC_NO,                  KC_NO,             KC_NO
     ),
 
     [_DEV2] = LAYOUT(
-        KEY_TRNS,               TO(_EDIT),          TO(_MEDIA),
+        KC_TRNS,                TO(_EDIT),          TO(_MEDIA),
         TO(_FN),                TO(_BASE),          KC_NO,
         KC_NO,                  KC_NO,              KC_NO
     ),
 
     [_FN] = LAYOUT(
-        KEY_TRNS,               KC_F14,            KC_F15,
+        KC_TRNS,                KC_F14,            KC_F15,
         KC_F16,                 KC_F17,            KC_F18,
         KC_F19,                 KC_F20,            KC_F21
     ),
@@ -120,4 +120,20 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 };
 
-// Encoder, RGB, OLED logic should be implemented here for full compatibility.
+// Fallback: holding R0C0 (top-left) and pressing R2C2 (bottom-right) returns to _BASE on any layer.
+static bool r0c0_held = false;
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    if (record->event.key.row == 0 && record->event.key.col == 0) {
+        r0c0_held = record->event.pressed;
+    }
+
+    if (record->event.key.row == 2 && record->event.key.col == 2) {
+        if (record->event.pressed && r0c0_held) {
+            layer_move(_BASE);
+            return false;
+        }
+    }
+
+    return true;
+}
