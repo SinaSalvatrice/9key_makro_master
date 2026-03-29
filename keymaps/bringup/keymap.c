@@ -87,7 +87,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_EDIT] = LAYOUT(
         MO(_SELECT),            LCTL(KC_C),         LCTL(KC_V),
         LCTL(KC_X),             LCTL(KC_ENT),       KC_NO,
-        LCTL(LSFT(KC_Z)),      KC_SPC,             KC_BSPC
+        LCTL(LSFT(KC_Z)),       KC_SPC,             KC_BSPC
     ),
 
     [_MEDIA] = LAYOUT(
@@ -103,8 +103,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 
     [_DEV2] = LAYOUT(
-        MO(_SELECT),            TO(_EDIT),          TO(_MEDIA),
-        TO(_FN),                TO(_BASE),          KC_NO,
+        MO(_SELECT),            KC_NO,              KC_NO,
+        KC_NO,                  KC_NO,              KC_NO,
         KC_NO,                  KC_NO,              KC_NO
     ),
 
@@ -121,9 +121,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 
     [_SELECT] = LAYOUT(
-        KC_NO,                  TO(_BASE),          TO(_NAV),
+        KC_NO,                  TO(_FN),            TO(_NAV),
         TO(_EDIT),              TO(_MEDIA),         TO(_RGB),
-        TO(_DEV),               TO(_DEV2),          TO(_FN)
+        TO(_DEV),               TO(_DEV2),          TO(_BASE)
     ),
 };
 
