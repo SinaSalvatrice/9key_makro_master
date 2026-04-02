@@ -39,30 +39,28 @@ static const char *layer_name(uint8_t layer) {
 static void apply_layer_rgb(uint8_t layer) {
 #ifdef RGBLIGHT_ENABLE
     rgblight_enable_noeeprom();
+    rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
     switch (layer) {
         case _BASE:
-            // Rainbow
-            rgblight_mode_noeeprom(RGBLIGHT_MODE_RAINBOW_MOOD);
+            // Turquoise: HSV 128 ≈ 180° (cyan/turquoise)
             rgblight_set_speed_noeeprom(128);
+            rgblight_sethsv_noeeprom(128, 255, 100);
             break;
         case _L1:
-            // Blue/turquoise
-            rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
+            // Green: HSV 85 ≈ 120°
             rgblight_set_speed_noeeprom(128);
-            rgblight_sethsv_noeeprom(158, 220, 100);
+            rgblight_sethsv_noeeprom(85, 255, 100);
             break;
         case _L2:
-            // Green/yellow
-            rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
+            // Purple: HSV 192 ≈ 270°
             rgblight_set_speed_noeeprom(128);
-            rgblight_sethsv_noeeprom(72, 255, 100);
+            rgblight_sethsv_noeeprom(192, 255, 100);
             break;
         case _SELECT:
         default:
-            // Red fast
-            rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
-            rgblight_set_speed_noeeprom(192);
-            rgblight_sethsv_noeeprom(0, 255, 100);
+            // White: zero saturation
+            rgblight_set_speed_noeeprom(128);
+            rgblight_sethsv_noeeprom(0, 0, 160);
             break;
     }
 #else
