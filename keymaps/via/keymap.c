@@ -102,7 +102,7 @@ static void apply_layer_rgb(uint8_t layer) {
 }
 
 static void refresh_feedback(void) {
-    apply_layer_rgb(visual_layer());
+    apply_layer_rgb(selector_active ? selector_target : visual_layer());
 }
 
 static void begin_selector(void) {
@@ -138,6 +138,7 @@ static void rotate_selector(bool clockwise) {
     } else {
         selector_target = (selector_target == _BASE) ? (_SELECT - 1) : (selector_target - 1);
     }
+    refresh_feedback();
 }
 
 void keyboard_post_init_user(void) {

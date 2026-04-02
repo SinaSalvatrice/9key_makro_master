@@ -82,7 +82,7 @@ static void apply_layer_rgb(uint8_t layer) {
 }
 
 static void refresh_feedback(void) {
-    apply_layer_rgb(visual_layer());
+    apply_layer_rgb(selector_active ? selector_target : visual_layer());
 }
 
 layer_state_t layer_state_set_user(layer_state_t state) {
@@ -185,6 +185,7 @@ static void rotate_selector(bool clockwise) {
     } else {
         selector_target = (selector_target == _BASE) ? (_SELECT - 1) : (selector_target - 1);
     }
+    refresh_feedback();
 }
 
 void matrix_scan_user(void) {
