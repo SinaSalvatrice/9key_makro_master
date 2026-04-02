@@ -209,27 +209,25 @@ bool oled_task_user(void) {
 #endif
 
 // ── Keymaps ──────────────────────────────────────────────────
-// BASE / L1 / L2: fill via QMK Configurator JSON
-// SELECT: top row = layer jumps, rest unused
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_BASE] = LAYOUT(
-        KC_TRNS,  KC_TRNS,  KC_TRNS,
-        KC_TRNS,  KC_TRNS,  KC_TRNS,
-        KC_TRNS,  KC_TRNS,  KC_TRNS
+        LALT(KC_TAB),  KC_UP,         LGUI(KC_TAB),
+        KC_LEFT,       LALT(KC_SPC),  KC_RGHT,
+        KC_PGUP,       KC_DOWN,       KC_PGDN
     ),
     [_L1] = LAYOUT(
-        KC_TRNS,  KC_TRNS,  KC_TRNS,
-        KC_TRNS,  KC_TRNS,  KC_TRNS,
-        KC_TRNS,  KC_TRNS,  KC_TRNS
+        KC_SLCT,  KC_COPY,  KC_PSTE,
+        KC_CUT,   MS_BTN1,  MS_BTN2,
+        KC_BSPC,  KC_SPC,   KC_ENT
     ),
     [_L2] = LAYOUT(
-        KC_TRNS,  KC_TRNS,  KC_TRNS,
-        KC_TRNS,  KC_TRNS,  KC_TRNS,
-        KC_TRNS,  KC_TRNS,  KC_TRNS
+        LCTL(KC_Z),  LCTL(KC_S),  LCTL(KC_R),
+        KC_WBAK,     KC_WREF,     KC_WSCH,
+        KC_F22,      KC_F23,      KC_F24
     ),
     [_SELECT] = LAYOUT(
-        TO(_BASE),  TO(_L1),  TO(_L2),
-        KC_NO,      KC_NO,    KC_NO,
-        KC_NO,      KC_NO,    KC_NO
+        TO(_BASE),  TO(_L1),   TO(_L2),
+        UG_PREV,    UG_TOGG,   UG_NEXT,
+        KC_CALC,    KC_FIND,   KC_MYCM
     ),
 };
