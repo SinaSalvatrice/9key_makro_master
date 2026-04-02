@@ -40,26 +40,19 @@ static void apply_layer_rgb(uint8_t layer) {
 #ifdef RGBLIGHT_ENABLE
     rgblight_enable_noeeprom();
     rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
+    rgblight_set_speed_noeeprom(220);
     switch (layer) {
         case _BASE:
-            // Turquoise: HSV 128 ≈ 180° (cyan/turquoise)
-            rgblight_set_speed_noeeprom(128);
             rgblight_sethsv_noeeprom(128, 255, 100);
             break;
         case _L1:
-            // Green: HSV 85 ≈ 120°
-            rgblight_set_speed_noeeprom(128);
             rgblight_sethsv_noeeprom(85, 255, 100);
             break;
         case _L2:
-            // Purple: HSV 192 ≈ 270°
-            rgblight_set_speed_noeeprom(128);
             rgblight_sethsv_noeeprom(192, 255, 100);
             break;
         case _SELECT:
         default:
-            // White: zero saturation
-            rgblight_set_speed_noeeprom(128);
             rgblight_sethsv_noeeprom(0, 0, 160);
             break;
     }
