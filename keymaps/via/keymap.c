@@ -142,6 +142,7 @@ static void rotate_selector(bool clockwise) {
 
 void keyboard_post_init_user(void) {
     gpio_set_pin_input_high(ENCODER_BTN_PIN);
+    gpio_set_pin_input_high(SELECTOR_BTN_PIN);
 
     refresh_feedback();
 }
@@ -156,7 +157,7 @@ layer_state_t layer_state_set_user(layer_state_t state) {
 
 void matrix_scan_user(void) {
     static bool was_pressed = false;
-    bool        pressed     = gpio_read_pin(ENCODER_BTN_PIN) == 0;
+    bool        pressed     = gpio_read_pin(SELECTOR_BTN_PIN) == 0;
 
     if (pressed && !was_pressed) {
         begin_selector();
