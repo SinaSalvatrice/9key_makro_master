@@ -29,22 +29,14 @@ static uint8_t visual_layer(void) {
 
 static const char *layer_name(uint8_t layer) {
     switch (layer) {
-        case _BASE:
-            return "BASE";
-        case _NAV:
-            return "NAV";
-        case _EDIT:
-            return "EDIT";
-        case _MEDIA:
-            return "MEDIA";
-        case _FN:
-            return "FN";
-        case _RGB:
-            return "RGB";
-        case _SELECT:
-            return "SELECT";
-        default:
-            return "UNK";
+        case _BASE:   return "BASE";
+        case _NAV:    return "NAV";
+        case _EDIT:   return "EDIT";
+        case _MEDIA:  return "MEDIA";
+        case _FN:     return "FN";
+        case _RGB:    return "RGB";
+        case _SELECT: return "SELECT";
+        default:      return "UNK";
     }
 }
 
@@ -54,43 +46,36 @@ static void apply_layer_rgb(uint8_t layer) {
 
     switch (layer) {
         case _BASE:
-            // Rainbow cycling through all hues
             rgblight_mode_noeeprom(RGBLIGHT_MODE_RAINBOW_MOOD);
             rgblight_set_speed_noeeprom(128);
             break;
         case _NAV:
-            // Blue/turquoise: HSV 158 ≈ 223° (between cyan and blue)
             rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
             rgblight_set_speed_noeeprom(128);
             rgblight_sethsv_noeeprom(158, 220, 100);
             break;
         case _EDIT:
-            // Green/yellow: HSV 72 ≈ 102° (chartreuse, yellow-green)
             rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
             rgblight_set_speed_noeeprom(128);
             rgblight_sethsv_noeeprom(72, 255, 100);
             break;
         case _MEDIA:
-            // Pink/yellow: HSV 224 ≈ 316° (hot pink/magenta-pink)
             rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
             rgblight_set_speed_noeeprom(144);
             rgblight_sethsv_noeeprom(224, 200, 100);
             break;
         case _FN:
-            // Orange/yellow: HSV 28 ≈ 39° (amber, orange-yellow)
             rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
             rgblight_set_speed_noeeprom(128);
             rgblight_sethsv_noeeprom(28, 255, 100);
             break;
         case _RGB:
-            // Purple: HSV 192 ≈ 270° (violet/purple)
             rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
             rgblight_set_speed_noeeprom(128);
             rgblight_sethsv_noeeprom(192, 255, 100);
             break;
         case _SELECT:
         default:
-            // Red, fast breathing
             rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
             rgblight_set_speed_noeeprom(192);
             rgblight_sethsv_noeeprom(0, 255, 100);
