@@ -102,7 +102,7 @@ static void apply_layer_rgb(uint8_t layer) {
 }
 
 static void refresh_feedback(void) {
-    apply_layer_rgb(visual_layer());
+    apply_layer_rgb(selector_active ? selector_target : visual_layer());
 }
 
 static void begin_selector(void) {
