@@ -12,10 +12,12 @@ enum layers {
     _SELECT,
 };
 
-static bool     selector_active = false;
-static uint16_t last_keycode    = KC_NO;
-static uint8_t  last_row        = 0;
-static uint8_t  last_col        = 0;
+static bool     selector_active    = false;
+static uint32_t last_activity_time = 0;
+static bool     sleep_sent         = false;
+static uint16_t last_keycode       = KC_NO;
+static uint8_t  last_row           = 0;
+static uint8_t  last_col           = 0;
 
 static uint8_t active_layer(void) {
     return get_highest_layer(layer_state | default_layer_state);
@@ -125,6 +127,7 @@ void keyboard_post_init_user(void) {
     gpio_set_pin_input_high(ENCODER_BTN_PIN);
     gpio_set_pin_input_high(SELECTOR_BTN_PIN);
 
+    last_activity_time = timer_read32();
     refresh_feedback();
 }
 
@@ -137,25 +140,39 @@ layer_state_t layer_state_set_user(layer_state_t state) {
 }
 
 void matrix_scan_user(void) {
-    static bool was_pressed = false;
-    bool        pressed     = gpio_read_pin(SELECTOR_BTN_PIN) == 0;
+    // ── selector button (GP12) ──────────────────────────────
+    static bool was_sel_pressed = false;
+    bool        sel_pressed     = gpio_read_pin(SELECTOR_BTN_PIN) == 0;
 
-    if (pressed && !was_pressed) {
-        begin_selector();
+    if (sel_pressed && !was_sel_pressed) { begin_selector(); }
+    if (!sel_pressed && was_sel_pressed) { finish_selector(); }
+    was_sel_pressed = sel_pressed;
+
+    // ── encoder button (GP9): wake ──────────────────────────
+    static bool was_enc_pressed = false;
+    bool        enc_pressed     = gpio_read_pin(ENCODER_BTN_PIN) == 0;
+
+    if (enc_pressed && !was_enc_pressed) {
+        last_activity_time = timer_read32();
+        sleep_sent = false;
+        tap_code16(KC_SYSTEM_WAKE);
     }
+    was_enc_pressed = enc_pressed;
 
-    if (!pressed && was_pressed) {
-        finish_selector();
+    // ── idle sleep ──────────────────────────────────────────
+    if (!sleep_sent && timer_elapsed32(last_activity_time) > IDLE_SLEEP_TIMEOUT_MS) {
+        sleep_sent = true;
+        tap_code16(KC_SYSTEM_SLEEP);
     }
-
-    was_pressed = pressed;
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (record->event.pressed) {
-        last_keycode = keycode;
-        last_row     = record->event.key.row;
-        last_col     = record->event.key.col;
+        last_activity_time = timer_read32();
+        sleep_sent         = false;
+        last_keycode       = keycode;
+        last_row           = record->event.key.row;
+        last_col           = record->event.key.col;
     }
 
     return true;
@@ -163,6 +180,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
 bool encoder_update_user(uint8_t index, bool clockwise) {
     (void)index;
+
+    last_activity_time = timer_read32();
+    sleep_sent         = false;
 
     if (selector_active) {
         return false;
@@ -204,8 +224,7 @@ oled_rotation_t oled_init_user(oled_rotation_t rotation) {
 static void render_selector(void) {
     oled_write_ln_P(PSTR("BAS NAV EDT"), false);
     oled_write_ln_P(PSTR("MED FN  RGB"), false);
-    oled_write_P(PSTR("SEL -> "), false);
-    oled_write_ln(layer_name(selector_target), false);
+    oled_write_ln_P(PSTR("pick a key "), false);
     oled_write_P(PSTR("POS "), false);
     oled_write(get_u8_str(last_row, ' '), false);
     oled_write_P(PSTR(","), false);
