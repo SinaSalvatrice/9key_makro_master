@@ -51,35 +51,47 @@ static const char *layer_name(uint8_t layer) {
 static void apply_layer_rgb(uint8_t layer) {
 #ifdef RGBLIGHT_ENABLE
     rgblight_enable_noeeprom();
-    rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
 
     switch (layer) {
         case _BASE:
+            // Rainbow cycling through all hues
+            rgblight_mode_noeeprom(RGBLIGHT_MODE_RAINBOW_MOOD);
             rgblight_set_speed_noeeprom(128);
-            rgblight_sethsv_noeeprom(170, 255, 100);
             break;
         case _NAV:
+            // Blue/turquoise: HSV 158 ≈ 223° (between cyan and blue)
+            rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
             rgblight_set_speed_noeeprom(128);
-            rgblight_sethsv_noeeprom(145, 220, 100);
+            rgblight_sethsv_noeeprom(158, 220, 100);
             break;
         case _EDIT:
+            // Green/yellow: HSV 72 ≈ 102° (chartreuse, yellow-green)
+            rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
             rgblight_set_speed_noeeprom(128);
-            rgblight_sethsv_noeeprom(50, 255, 100);
+            rgblight_sethsv_noeeprom(72, 255, 100);
             break;
         case _MEDIA:
+            // Pink/yellow: HSV 224 ≈ 316° (hot pink/magenta-pink)
+            rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
             rgblight_set_speed_noeeprom(144);
-            rgblight_sethsv_noeeprom(210, 180, 100);
+            rgblight_sethsv_noeeprom(224, 200, 100);
             break;
         case _FN:
+            // Orange/yellow: HSV 28 ≈ 39° (amber, orange-yellow)
+            rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
             rgblight_set_speed_noeeprom(128);
-            rgblight_sethsv_noeeprom(20, 255, 100);
+            rgblight_sethsv_noeeprom(28, 255, 100);
             break;
         case _RGB:
+            // Purple: HSV 192 ≈ 270° (violet/purple)
+            rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
             rgblight_set_speed_noeeprom(128);
             rgblight_sethsv_noeeprom(192, 255, 100);
             break;
         case _SELECT:
         default:
+            // Red, fast breathing
+            rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
             rgblight_set_speed_noeeprom(192);
             rgblight_sethsv_noeeprom(0, 255, 100);
             break;
