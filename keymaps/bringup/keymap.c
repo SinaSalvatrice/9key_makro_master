@@ -16,22 +16,6 @@ enum layers {
     _LAYER_COUNT  // always last
 };
 
-// ── Layer names ─────────────────────────────────────────────
-static const char *layer_name(uint8_t l) {
-    switch (l) {
-        case _BASE:   return "BASE";
-        case _NAV:    return "NAV";
-        case _EDIT:   return "EDIT";
-        case _MEDIA:  return "MEDIA";
-        case _FN:     return "FN";
-        case _DEV:    return "DEV";
-        case _DEV2:   return "DEV2";
-        case _RGB:    return "RGB";
-        case _SELECT: return "SELECT";
-        default:      return "BASE";
-    }
-}
-
 // Short label (max 6 chars) for the legend grid
 static const char *layer_name_short(uint8_t l) {
     switch (l) {
