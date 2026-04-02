@@ -1,6 +1,7 @@
 #pragma once
 
-#define ENCODER_BTN_PIN GP10
+#define ENCODER_BTN_PIN GP9
+#define SELECTOR_BTN_PIN GP12
 
 #define RGBLIGHT_LIMIT_VAL 160
 #define RGBLIGHT_DEFAULT_HUE 128

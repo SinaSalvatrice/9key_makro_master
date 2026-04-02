@@ -13,8 +13,6 @@ enum layers {
 };
 
 static bool     selector_active = false;
-static uint8_t  selector_origin = _BASE;
-static uint8_t  selector_target = _BASE;
 static uint16_t last_keycode    = KC_NO;
 static uint8_t  last_row        = 0;
 static uint8_t  last_col        = 0;
@@ -109,13 +107,6 @@ static void begin_selector(void) {
     if (selector_active) {
         return;
     }
-
-    selector_origin = active_layer();
-    if (selector_origin == _SELECT) {
-        selector_origin = _BASE;
-    }
-
-    selector_target = selector_origin;
     selector_active = true;
     layer_on(_SELECT);
     refresh_feedback();
@@ -125,24 +116,14 @@ static void finish_selector(void) {
     if (!selector_active) {
         return;
     }
-
     selector_active = false;
     layer_off(_SELECT);
-    layer_move(selector_target);
-    refresh_feedback();
-}
-
-static void rotate_selector(bool clockwise) {
-    if (clockwise) {
-        selector_target = (selector_target + 1) % _SELECT;
-    } else {
-        selector_target = (selector_target == _BASE) ? (_SELECT - 1) : (selector_target - 1);
-    }
     refresh_feedback();
 }
 
 void keyboard_post_init_user(void) {
     gpio_set_pin_input_high(ENCODER_BTN_PIN);
+    gpio_set_pin_input_high(SELECTOR_BTN_PIN);
 
     refresh_feedback();
 }
@@ -157,7 +138,7 @@ layer_state_t layer_state_set_user(layer_state_t state) {
 
 void matrix_scan_user(void) {
     static bool was_pressed = false;
-    bool        pressed     = gpio_read_pin(ENCODER_BTN_PIN) == 0;
+    bool        pressed     = gpio_read_pin(SELECTOR_BTN_PIN) == 0;
 
     if (pressed && !was_pressed) {
         begin_selector();
@@ -184,7 +165,6 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
     (void)index;
 
     if (selector_active) {
-        rotate_selector(clockwise);
         return false;
     }
 
