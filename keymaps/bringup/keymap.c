@@ -104,13 +104,30 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     return true;
 }
 
-// ── Encoder: volume (normal) ────────────────────────────────
+// ── Encoder: layer-dependent ────────────────────────────────
 bool encoder_update_user(uint8_t index, bool clockwise) {
     (void)index;
-    if (clockwise) {
-        tap_code(next_layer);
-    } else {
-        tap_code(prev_layer);
+    switch (active_layer()) {
+        case _BASE:
+            tap_code(clockwise ? KC_VOLU : KC_VOLD);
+            break;
+        case _WINDOW:
+            tap_code(clockwise ? KC_PGDN : KC_PGUP);
+            break;
+        case _TEXT:
+            register_code(KC_LCTL);
+            tap_code(clockwise ? KC_RGHT : KC_LEFT);
+            unregister_code(KC_LCTL);
+            break;
+        case _RGB:
+            tap_code16(clockwise ? UG_VALU : UG_VALD);
+            break;
+        case _SELECT:
+            layer_move(clockwise ? next_layer(active_layer()) : prev_layer(active_layer()));
+            break;
+        default:
+            tap_code(clockwise ? KC_VOLU : KC_VOLD);
+            break;
     }
     return false;
 }
