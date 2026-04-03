@@ -22,13 +22,9 @@ static const char *layer_name_short(uint8_t l) {
         case _BASE:   return "BASE";
         case _NAV:    return "NAV";
         case _EDIT:   return "EDIT";
-        case _MEDIA:  return "MEDIA";
-        case _FN:     return "FN";
-        case _DEV:    return "DEV";
-        case _DEV2:   return "DEV2";
         case _RGB:    return "RGB";
         case _SELECT: return "SEL";
-        default:      return "???";
+        default:      return "BASE";
     }
 }
 
@@ -63,39 +59,15 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 
     [_NAV] = LAYOUT(
-        MO(_SELECT),            KC_UP,              LALT(KC_TAB),
-        KC_LEFT,                KC_ENT,             KC_RGHT,
-        LCTL(KC_Z),             KC_DOWN,            LCTL(KC_R)
+        MO(_SELECT),            KC_PGUP,           KC_HOME,
+        KC_LEFT,                KC_PGDN,           KC_RGHT,
+        KC_END,                 KC_PGDN,           KC_END
     ),
 
     [_EDIT] = LAYOUT(
-        MO(_SELECT),            LCTL(KC_C),         LCTL(KC_V),
-        LCTL(KC_X),             LCTL(KC_ENT),       KC_NO,
-        LCTL(LSFT(KC_Z)),       KC_SPC,             KC_BSPC
-    ),
-
-    [_MEDIA] = LAYOUT(
-        MO(_SELECT),            KC_MSEL,            KC_MNXT,
-        KC_MRWD,                KC_MPLY,            KC_MFFD,
-        KC_DOWN,                KC_MSTP,            KC_UP
-    ),
-
-    [_DEV] = LAYOUT(
-        MO(_SELECT),            KC_NO,              KC_NO,
-        KC_NO,                  KC_NO,              KC_NO,
-        KC_NO,                  KC_NO,              KC_NO
-    ),
-
-    [_DEV2] = LAYOUT(
-        MO(_SELECT),            KC_NO,              KC_NO,
-        KC_NO,                  KC_NO,              KC_NO,
-        KC_NO,                  KC_NO,              KC_NO
-    ),
-
-    [_FN] = LAYOUT(
-        MO(_SELECT),            KC_F14,             KC_F15,
-        KC_F16,                 KC_F17,             KC_F18,
-        KC_F19,                 KC_F20,             KC_F21
+        MO(_SELECT),            KC_PGUP,           KC_HOME,
+        KC_LEFT,                KC_PGDN,           KC_RGHT,
+        KC_END,                 KC_PGDN,           KC_END
     ),
 
     [_RGB] = LAYOUT(
@@ -105,9 +77,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 
     [_SELECT] = LAYOUT(
-        KC_NO,                  TO(_FN),            TO(_NAV),
-        TO(_EDIT),              TO(_MEDIA),         TO(_RGB),
-        TO(_DEV),               TO(_DEV2),          TO(_BASE)
+        KC_NO,                  TO(_NAV),            TO(_EDIT),
+        TO(_RGB),              TO(_RGB),           KC_NO,
+        KC_NO,                  KC_NO,              TO(_BASE)
     ),
 };
 
