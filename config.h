@@ -1,7 +1,7 @@
 #pragma once
 
-#define ENCODER_BTN_PIN GP10
-#define SELECTOR_BTN_PIN GP11
+#define ENCODER_BTN_PIN GP8
+#define SELECTOR_BTN_PIN GP12
 
 // Milliseconds of inactivity before sending system sleep (5 minutes)
 #define IDLE_SLEEP_TIMEOUT_MS 300000
