@@ -56,15 +56,15 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 
     [_WINDOW] = LAYOUT(
-        MO(_SELECT),                  KC_NO,                    KC_NO,
-        LGUI(LCTL(KC_LEFT)),          KC_NO,                    LGUI(LCTL(KC_RGHT)),
-        LSA(KC_TAB),                  KC_NO,                    LALT(KC_TAB)
+        MO(_SELECT),            KC_PGDN,           KC_NO,
+        LGUI(LCTL(KC_LEFT)),    KC_PGDN,           LGUI(LCTL(KC_RGHT)),
+        LSA(LALT(KC_TAB)),      KC_NO,             LALT(KC_TAB)
     ),
 
     [_TEXT] = LAYOUT(
-        MO(_SELECT),            KC_PGUP,           KC_HOME,
-        KC_LEFT,                KC_PGDN,           KC_RGHT,
-        KC_END,                 KC_PGDN,           KC_END
+        MO(_SELECT),            LCTL(KC_A),         LCTL(KC_C),
+        LCTL(KC_X),             LCTL(KC_V),         KC_RGHT,
+        KC_HOME,                KC_SPACE,           KC_END
     ),
 
     [_RGB] = LAYOUT(
@@ -74,9 +74,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 
     [_SELECT] = LAYOUT(
-        KC_NO,                  TO(_WINDOW),            TO(_TEXT),
-        TO(_RGB),              TO(_RGB),           KC_NO,
-        KC_NO,                  KC_NO,              TO(_BASE)
+        KC_NO,                  TO(_WINDOW),        TO(_TEXT),
+        TO(_RGB),               TO(_RGB),           LCTL(F),
+        LCTL(S),                KC_APP,             TO(_BASE)
     ),
 };
 
