@@ -12,9 +12,6 @@ enum layers {
     _LAYER_COUNT  // always last
 };
 
-enum combos {
-    COMBO_ESCAPE,
-};
 
 // Short label (max 6 chars) for the legend grid
 static const char *layer_name_short(uint8_t l) {
