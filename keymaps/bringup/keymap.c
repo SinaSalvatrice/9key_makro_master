@@ -5,12 +5,8 @@
 // ── Layer enum ──────────────────────────────────────────────
 enum layers {
     _BASE,
-    _NAV,
-    _EDIT,
-    _MEDIA,
-    _FN,
-    _DEV,
-    _DEV2,
+    _WINDOW,
+    _TEXT,
     _RGB,
     _SELECT,
     _LAYER_COUNT  // always last
@@ -20,8 +16,8 @@ enum layers {
 static const char *layer_name_short(uint8_t l) {
     switch (l) {
         case _BASE:   return "BASE";
-        case _NAV:    return "NAV";
-        case _EDIT:   return "EDIT";
+        case _WINDOW:    return "WIN";
+        case _TEXT:   return "TXT";
         case _RGB:    return "RGB";
         case _SELECT: return "SEL";
         default:      return "BASE";
@@ -58,13 +54,13 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         LCTL(KC_Z),             KC_DOWN,            LCTL(KC_R)
     ),
 
-    [_NAV] = LAYOUT(
+    [_WINDOW] = LAYOUT(
         MO(_SELECT),            KC_PGUP,           KC_HOME,
         KC_LEFT,                KC_PGDN,           KC_RGHT,
         KC_END,                 KC_PGDN,           KC_END
     ),
 
-    [_EDIT] = LAYOUT(
+    [_TEXT] = LAYOUT(
         MO(_SELECT),            KC_PGUP,           KC_HOME,
         KC_LEFT,                KC_PGDN,           KC_RGHT,
         KC_END,                 KC_PGDN,           KC_END
@@ -77,7 +73,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 
     [_SELECT] = LAYOUT(
-        KC_NO,                  TO(_NAV),            TO(_EDIT),
+        KC_NO,                  TO(_WINDOW),            TO(_TEXT),
         TO(_RGB),              TO(_RGB),           KC_NO,
         KC_NO,                  KC_NO,              TO(_BASE)
     ),
@@ -112,9 +108,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 bool encoder_update_user(uint8_t index, bool clockwise) {
     (void)index;
     if (clockwise) {
-        tap_code(KC_VOLU);
+        tap_code(next_layer(active_layer()));
     } else {
-        tap_code(KC_VOLD);
+        tap_code(prev_layer(active_layer()));
     }
     return false;
 }
