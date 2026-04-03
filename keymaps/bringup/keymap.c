@@ -50,15 +50,15 @@ static uint8_t next_layer(uint8_t l) {
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     [_BASE] = LAYOUT(
-        MO(_SELECT),            KC_UP,              KC_BCSPC,
+        MO(_SELECT),            KC_UP,              KC_BSPC,
         KC_LEFT,                KC_ENT,             KC_RGHT,
         LCTL(KC_Z),             KC_DOWN,            LCTL(KC_R)
     ),
 
     [_WINDOW] = LAYOUT(
         MO(_SELECT),                  KC_NO,             KC_NO,
-        LGUI(KC_TAB(KC_LEFT)),        KC_HOME,           LGUI(KC_TAB(KC_RGHT)),
-        LALT(KC_TAB(KC_LEFT)),        KC_END,            LALT(KC_TAB(KC_RIGHT))
+        LGUI(KC_LEFT),                KC_HOME,           LGUI(KC_RGHT),
+        LALT(KC_LEFT),                KC_END,            LALT(KC_RGHT)
     ),
 
     [_TEXT] = LAYOUT(
@@ -95,7 +95,15 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         }
     }
 
+    // Track last key press for OLED display
+    if (record->event.pressed) {
+        last_keycode = keycode;
+        last_row     = record->event.key.row;
+        last_col     = record->event.key.col;
+    }
 
+    return true;
+}
 
 // ── Encoder: layer-dependent ────────────────────────────────
 bool encoder_update_user(uint8_t index, bool clockwise) {
