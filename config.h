@@ -1,7 +1,7 @@
 #pragma once
 
-#define ENCODER_BTN_PIN GP9
-#define SELECTOR_BTN_PIN GP12
+#define ENCODER_BTN_PIN GP10
+#define SELECTOR_BTN_PIN GP11
 
 // Milliseconds of inactivity before sending system sleep (5 minutes)
 #define IDLE_SLEEP_TIMEOUT_MS 300000
@@ -12,7 +12,7 @@
 #define RGBLIGHT_DEFAULT_VAL 96
 #define RGBLIGHT_DEFAULT_SPD 128
 #define ONBOARD_LED_PIN GP13
-#define DYNAMIC_KEYMAP_LAYER_COUNT 9
+#define DYNAMIC_KEYMAP_LAYER_COUNT 5
 #define I2C_DRIVER I2CD0
 #define I2C1_SDA_PIN GP0
 #define I2C1_SCL_PIN GP1
