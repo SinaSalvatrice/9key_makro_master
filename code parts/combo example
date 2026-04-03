@@ -1,0 +1,28 @@
+// In rules.mk
+COMBO_ENABLE = yes
+
+// In keymap.c
+enum combos {
+    COMBO_ESCAPE,
+};
+
+const uint16_t PROGMEM combo_escape[] = {KC_A, KC_S, COMBO_END};
+
+combo_t key_combos[] = {
+    [COMBO_ESCAPE] = COMBO(combo_escape, KC_ESC),
+};
+
+
+//custom tap actions
+
+void process_combo_event(uint16_t combo_index, bool pressed) {
+    switch (combo_index) {
+        case COMBO_ESCAPE:
+            if (pressed) layer_move(_BASE);
+            break;
+    }
+}
+
+combo_t key_combos[] = {
+    [COMBO_ESCAPE] = COMBO_ACTION(combo_escape),
+};
