@@ -1,5 +1,6 @@
 #include QMK_KEYBOARD_H
 #include "gpio.h"
+#include <stdio.h>
 
 // ── Layers ──────────────────────────────────────────────────
 enum layers {
@@ -82,7 +83,6 @@ static void finish_selector(void) {
 
 // ── Init ─────────────────────────────────────────────────────
 void keyboard_post_init_user(void) {
-    gpio_set_pin_input_high(ENCODER_BTN_PIN);
     gpio_set_pin_input_high(SELECTOR_BTN_PIN);
     last_activity_time = timer_read32();
     refresh_feedback();
@@ -98,22 +98,16 @@ layer_state_t layer_state_set_user(layer_state_t state) {
 
 // ── GPIO scan: selector + encoder wake + idle sleep ──────────
 void matrix_scan_user(void) {
-    // selector button (GP12)
+    // selector button (GP12): hold = SELECT layer, any press = wake + activity reset
     static bool was_sel = false;
     bool        sel     = gpio_read_pin(SELECTOR_BTN_PIN) == 0;
-    if (sel && !was_sel) { begin_selector(); }
-    if (!sel && was_sel) { finish_selector(); }
-    was_sel = sel;
-
-    // encoder button (GP9): system wake
-    static bool was_enc = false;
-    bool        enc     = gpio_read_pin(ENCODER_BTN_PIN) == 0;
-    if (enc && !was_enc) {
+    if (sel && !was_sel) {
         last_activity_time = timer_read32();
         sleep_sent = false;
-        tap_code16(KC_SYSTEM_WAKE);
+        begin_selector();
     }
-    was_enc = enc;
+    if (!sel && was_sel) { finish_selector(); }
+    was_sel = sel;
 
     // idle sleep
     if (!sleep_sent && timer_elapsed32(last_activity_time) > IDLE_SLEEP_TIMEOUT_MS) {
@@ -207,14 +201,14 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_PGUP,       KC_DOWN,       KC_PGDN
     ),
     [_L1] = LAYOUT(
-        KC_SLCT,  KC_COPY,  KC_PSTE,
-        KC_CUT,   MS_BTN1,  MS_BTN2,
-        KC_BSPC,  KC_SPC,   KC_ENT
+        KC_SELECT,  KC_COPY,   KC_PASTE,
+        KC_CUT,     MS_BTN1,   MS_BTN2,
+        KC_BSPC,    KC_SPC,    KC_ENT
     ),
     [_L2] = LAYOUT(
-        LCTL(KC_Z),  LCTL(KC_S),  LCTL(KC_R),
-        KC_WBAK,     KC_WREF,     KC_WSCH,
-        KC_F22,      KC_F23,      KC_F24
+        LCTL(KC_Z),      LCTL(KC_S),       LCTL(KC_R),
+        KC_WWW_BACK,     KC_WWW_REFRESH,   KC_WWW_SEARCH,
+        KC_F22,          KC_F23,           KC_F24
     ),
     [_SELECT] = LAYOUT(
         TO(_BASE),  TO(_L1),   TO(_L2),
