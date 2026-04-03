@@ -145,12 +145,14 @@ void matrix_scan_user(void) {
     enc_was_pressed = enc_pressed;
 
     static bool sel_was_pressed = false;
+    static uint8_t sel_prev_layer = _BASE;
     bool        sel_pressed     = (gpio_read_pin(SELECTOR_BTN_PIN) == 0);
 
     if (sel_pressed && !sel_was_pressed) {
-        layer_on(_TEXT);
+        sel_prev_layer = active_layer();
+        layer_move(_TEXT);
     } else if (!sel_pressed && sel_was_pressed) {
-        layer_off(_TEXT);
+        layer_move(sel_prev_layer);
     }
     sel_was_pressed = sel_pressed;
 }
