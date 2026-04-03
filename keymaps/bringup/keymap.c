@@ -53,15 +53,15 @@ static uint8_t next_layer(uint8_t l) {
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     [_BASE] = LAYOUT(
-        MO(_SELECT),            KC_UP,              LGUI(KC_TAB),
-        KC_LEFT,                LGUI(KC_LEFT),      KC_RGHT,
+        MO(_SELECT),            KC_UP,              KC_BKSPC,
+        KC_LEFT,                KC_ENT,             KC_RGHT,
         LCTL(KC_Z),             KC_DOWN,            LCTL(KC_R)
     ),
 
     [_WINDOW] = LAYOUT(
-        MO(_SELECT),            KC_PGUP,           KC_HOME,
-        KC_LEFT,                KC_PGDN,           KC_RGHT,
-        KC_END,                 KC_PGDN,           KC_END
+        MO(_SELECT),                  KC_NO,             KC_NO,
+        LGUI(KC_TAB(KC_LEFT)),        KC_HOME,           LGUI(KC_TAB(KC_RGHT)),
+        LALT(KC_TAB(KC_LEFT)),        KC_END,            LALT(KC_TAB(KC_RIGHT))
     ),
 
     [_TEXT] = LAYOUT(
@@ -99,6 +99,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     }
 
     //combos
+
+
+
 const uint16_t PROGMEM combo_escape[] = {KC_A, KC_S, COMBO_END};
 
 combo_t key_combos[] = {
@@ -144,15 +147,26 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
     return false;
 }
 
-// ── Encoder button via matrix_scan (GP10) ───────────────────
+// ── Encoder button via matrix_scan (GP8) ────────────────────
+// ── Selector button via matrix_scan (GP11) ──────────────────
 void matrix_scan_user(void) {
-    static bool was_pressed = false;
-    bool        pressed     = (gpio_read_pin(ENCODER_BTN_PIN) == 0);
+    static bool enc_was_pressed = false;
+    bool        enc_pressed     = (gpio_read_pin(ENCODER_BTN_PIN) == 0);
 
-    if (pressed && !was_pressed) {
+    if (enc_pressed && !enc_was_pressed) {
         legend_active = !legend_active;  // toggle legend on press
     }
-    was_pressed = pressed;
+    enc_was_pressed = enc_pressed;
+
+    static bool sel_was_pressed = false;
+    bool        sel_pressed     = (gpio_read_pin(SELECTOR_BTN_PIN) == 0);
+
+    if (sel_pressed && !sel_was_pressed) {
+        layer_on(_TEXT);
+    } else if (!sel_pressed && sel_was_pressed) {
+        layer_off(_TEXT);
+    }
+    sel_was_pressed = sel_pressed;
 }
 
 // ── Init ────────────────────────────────────────────────────
@@ -168,6 +182,7 @@ void keyboard_post_init_user(void) {
     gpio_write_pin_high(GP25);
 
     gpio_set_pin_input_high(ENCODER_BTN_PIN);
+    gpio_set_pin_input_high(SELECTOR_BTN_PIN);
 }
 
 // ── OLED ────────────────────────────────────────────────────
