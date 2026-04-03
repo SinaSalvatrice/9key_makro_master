@@ -108,9 +108,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 bool encoder_update_user(uint8_t index, bool clockwise) {
     (void)index;
     if (clockwise) {
-        tap_code(next_layer(active_layer()));
+        tap_code(next_layer);
     } else {
-        tap_code(prev_layer(active_layer()));
+        tap_code(prev_layer);
     }
     return false;
 }
