@@ -98,26 +98,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         }
     }
 
-    //combos
 
-
-
-const uint16_t PROGMEM combo_escape[] = {KC_A, KC_S, COMBO_END};
-
-combo_t key_combos[] = {
-    [COMBO_ESCAPE] = COMBO(combo_escape, KC_ESC),
-};
-
-
-    // Track last key press for OLED display
-    if (record->event.pressed) {
-        last_keycode = keycode;
-        last_row     = record->event.key.row;
-        last_col     = record->event.key.col;
-    }
-
-    return true;
-}
 
 // ── Encoder: layer-dependent ────────────────────────────────
 bool encoder_update_user(uint8_t index, bool clockwise) {
