@@ -1,7 +1,4 @@
-// In rules.mk
-COMBO_ENABLE = yes
 
-// In keymap.c
 enum combos {
     COMBO_ESCAPE,
 };

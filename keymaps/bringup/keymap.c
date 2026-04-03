@@ -12,6 +12,10 @@ enum layers {
     _LAYER_COUNT  // always last
 };
 
+enum combos {
+    COMBO_ESCAPE,
+};
+
 // Short label (max 6 chars) for the legend grid
 static const char *layer_name_short(uint8_t l) {
     switch (l) {
@@ -93,6 +97,14 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             return false;
         }
     }
+
+    //combos
+const uint16_t PROGMEM combo_escape[] = {KC_A, KC_S, COMBO_END};
+
+combo_t key_combos[] = {
+    [COMBO_ESCAPE] = COMBO(combo_escape, KC_ESC),
+};
+
 
     // Track last key press for OLED display
     if (record->event.pressed) {

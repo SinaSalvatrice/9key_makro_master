@@ -1,8 +1,3 @@
-// In rules.mk
-TAP_DANCE_ENABLE = yes
-
-// In keymap.c
-#include "quantum.h"
 
 enum tap_dance_actions {
     TD_LAYER_CYCLE,  // single: nothing, double: cycle layer
