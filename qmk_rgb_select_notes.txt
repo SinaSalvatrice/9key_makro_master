@@ -1,0 +1,43 @@
+Required / recommended QMK bits for this keymap
+
+rules.mk
+--------
+RGBLIGHT_ENABLE = yes
+OLED_ENABLE = yes
+ENCODER_ENABLE = yes
+
+config.h
+--------
+#define RGBLIGHT_LED_COUNT 9
+#define RGBLIGHT_SLEEP
+// keep static mode available; this keymap renders LEDs directly
+
+What changed
+------------
+- SELECT is now a real layer launcher:
+  key 1 = BASE
+  key 2 = WINDOW
+  key 3 = TXT
+  key 4 = RGB
+  key 5 = toggle visual profile (WILD / QUIET)
+  keys 6-9 = free / future layers
+
+- WILD profile:
+  BASE   = dual-color elegant breathing
+  WINDOW = electric blue scanner + flash
+  TXT    = calm green drift
+  RGB    = rainbow / flashy
+  SELECT = slot colors + moving preview
+
+- QUIET profile:
+  only the currently selected layer key breathes
+
+- While SELECT is active:
+  preview cursor advances every 500 ms
+  encoder steps preview manually
+  OLED shows key number + layer name for the highlighted slot
+
+Important
+---------
+If your WS2812 strip is not physically wired in 1,2,3 / 4,5,6 / 7,8,9 order,
+edit key_led_map[] in keymap_rgb_select_rework.c.
