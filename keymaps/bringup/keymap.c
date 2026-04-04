@@ -125,7 +125,12 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
             tap_code16(clockwise ? UG_VALU : UG_VALD);
             break;
         case _SELECT:
-            layer_move(clockwise ? next_layer(active_layer()) : prev_layer(active_layer()));
+            {
+                // Compute the base layer sitting underneath _SELECT
+                uint8_t base = get_highest_layer(layer_state & ~((layer_state_t)1 << _SELECT));
+                layer_move(clockwise ? next_layer(base) : prev_layer(base));
+                layer_on(_SELECT);  // keep _SELECT on top — encoder button is still held
+            }
             break;
         default:
             tap_code(clockwise ? KC_VOLU : KC_VOLD);
@@ -137,14 +142,12 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 // ── Encoder button via matrix_scan (GP8) ────────────────────
 // ── Selector button via matrix_scan (GP12) ──────────────────
 void matrix_scan_user(void) {
-    // Encoder button: momentary _SELECT — hold to enter, release to return.
-    // While _SELECT is active the encoder knob cycles layers.
-    static bool    enc_was_pressed  = false;
-    static uint8_t enc_prev_layer   = _BASE;
-    bool           enc_pressed      = (gpio_read_pin(ENCODER_BTN_PIN) == 0);
+    // Encoder button: momentary _SELECT — hold to enter, release to exit.
+    // layer_on/layer_off preserves the base layer through cycling.
+    static bool enc_was_pressed = false;
+    bool        enc_pressed     = (gpio_read_pin(ENCODER_BTN_PIN) == 0);
 
     if (enc_pressed && !enc_was_pressed) {
-        enc_prev_layer = active_layer();
         layer_move(_SELECT);
     } else if (!enc_pressed && enc_was_pressed) {
         layer_move(enc_prev_layer);
