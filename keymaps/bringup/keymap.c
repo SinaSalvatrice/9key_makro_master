@@ -125,12 +125,7 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
             tap_code16(clockwise ? UG_VALU : UG_VALD);
             break;
         case _SELECT:
-            {
-                // Compute the base layer sitting underneath _SELECT
-                uint8_t base = get_highest_layer(layer_state & ~((layer_state_t)1 << _SELECT));
-                layer_move(clockwise ? next_layer(base) : prev_layer(base));
-                layer_on(_SELECT);  // keep _SELECT on top — encoder button is still held
-            }
+            layer_move(clockwise ? next_layer(active_layer()) : prev_layer(active_layer()));
             break;
         default:
             tap_code(clockwise ? KC_VOLU : KC_VOLD);
@@ -142,15 +137,17 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 // ── Encoder button via matrix_scan (GP8) ────────────────────
 // ── Selector button via matrix_scan (GP12) ──────────────────
 void matrix_scan_user(void) {
-    // Encoder button: momentary _SELECT — hold to enter, release to exit.
-    // layer_on/layer_off preserves the base layer through cycling.
-    static bool enc_was_pressed = false;
-    bool        enc_pressed     = (gpio_read_pin(ENCODER_BTN_PIN) == 0);
+    // Encoder button: momentary _SELECT — hold to enter, release to return.
+    // While _SELECT is active the encoder knob cycles layers.
+    static bool    enc_was_pressed  = false;
+    static uint8_t enc_prev_layer   = _BASE;
+    bool           enc_pressed      = (gpio_read_pin(ENCODER_BTN_PIN) == 0);
 
     if (enc_pressed && !enc_was_pressed) {
-        layer_on(_SELECT);
+        enc_prev_layer = active_layer();
+        layer_move(_SELECT);
     } else if (!enc_pressed && enc_was_pressed) {
-        layer_off(_SELECT);
+        layer_move(enc_prev_layer);
     }
     enc_was_pressed = enc_pressed;
 
@@ -178,24 +175,13 @@ void matrix_scan_user(void) {
 #ifdef RGBLIGHT_ENABLE
 layer_state_t layer_state_set_user(layer_state_t state) {
     switch (get_highest_layer(state)) {
-        case _SELECT:
-            // Fast breathing white — signals selection mode is active
-            rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 2);
-            rgblight_sethsv_noeeprom(0, 0, 200);
-            rgblight_set_speed_noeeprom(200);
-            break;
-        case _RGB:
-            // Fast rainbow mood — all LEDs flash through hues rapidly, like waterdrops
-            rgblight_mode_noeeprom(RGBLIGHT_MODE_RAINBOW_MOOD);
-            rgblight_set_speed_noeeprom(220);
-            break;
         case _BASE:
         default:
             // Slow moving rainbow swirl — flowing colour wave, gently rhythmic
             rgblight_mode_noeeprom(RGBLIGHT_MODE_RAINBOW_SWIRL);
             rgblight_set_speed_noeeprom(40);
             break;
-        // _WINDOW, _TEXT — will get their own colour & effect
+        // _WINDOW, _TEXT, _RGB, _SELECT — will get their own colour & effect
     }
     return state;
 }
@@ -300,7 +286,7 @@ static void render_legend(uint8_t layer) {
         write_line(2 + r, line);
     }
 
-    write_line(5, "  [Sel btn]=toggle");
+    write_line(5, "  [Enc btn]=toggle");
     write_line(6, "");
     write_line(7, "");
 }
@@ -313,14 +299,10 @@ bool oled_task_user(void) {
     }
 
     uint8_t cur = active_layer();
-    // While encoder-SELECT is held, show the base layer being targeted, not SELECT
-    uint8_t display = (cur == _SELECT)
-        ? get_highest_layer((layer_state & ~((layer_state_t)1 << _SELECT)) | default_layer_state)
-        : cur;
-    render_header(display);
+    render_header(cur);
 
     if (legend_active) {
-        render_legend(display);
+        render_legend(cur);
     } else {
         render_keyinfo();
     }
