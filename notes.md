@@ -1,216 +1,127 @@
-# 9key_makro_master – Project Notes
+# 9key_makro_master - Project Notes
 
-## Overview
-Custom 3x3 macro pad with:
-- RP2040 (QMK)
-- WS2812 LED strip (1 LED per key, chained)
-- OLED display (SSD1306)
-- Encoder with push button
-- Selector button
+## Goal
+Build a 3x3 RP2040 macro pad with a selector workflow, OLED feedback, and RGB behavior that can evolve from simple layer colors into per-key animated visuals.
 
-Goal: expressive but controlled RGB system + fast layer workflow
+## Confirmed Hardware
 
----
+- RP2040/QMK keyboard
+- 3x3 matrix
+- 1 WS2812 LED per key, 9 total
+- OLED display on I2C, configured as SSD1306
+- Rotary encoder on GP9/GP10
+- Encoder push button on GP8
+- Separate selector button on GP12
 
-## Hardware
+## What Happened So Far
 
-### Matrix
-- 3x3 layout (9 keys)
-- standard row/col scan
+The repo currently contains multiple parallel keymap implementations rather than one settled design.
 
-### LEDs
-- WS2812 / NeoPixel
-- physically one strip, logically per-key
-- each key has exactly one LED
-- mapping required (strip is serpentine)
+### 1. Simple keymap
+- Uses a dedicated selector button on GP12 to hold the SELECT layer
+- Has a compact layer set: BASE, L1, L2, SELECT
+- RGB is still global layer feedback through RGBLIGHT presets
+- OLED already shows layer, last keycode, and key position
+- This is the clearest working baseline conceptually
 
-Example mapping (to verify):
-[0,1,2]
-[5,4,3]
-[6,7,8]
+### 2. VIA keymap
+- Expands the layer model to BASE, NAV, EDIT, MEDIA, FN, RGB, SELECT
+- Keeps the separate selector button and uses the encoder button mainly for wake behavior
+- OLED UI is still simple and readable
+- RGB is still mostly based on RGBLIGHT modes, not true per-key rendering
+- Contains at least one obvious code issue: `refresh_feedback()` references `selector_target`, which is not defined
 
-→ must match physical routing
+### 3. Reworked keymap
+- This is the most ambitious prototype and is closest to the original design vision
+- Introduces explicit per-key LED rendering through `rgblight_sethsv_at()`
+- Adds a key-to-LED mapping array
+- Adds WILD vs QUIET RGB profiles
+- Adds timed SELECT cursor cycling at 500 ms
+- Allows encoder rotation while in SELECT mode
+- Adds a more developed OLED UI and custom select keycodes
+- This version looks like the intended direction, but it is still a prototype and needs cleanup and real build validation
 
----
+## Current Reality vs Older Notes
 
-## Layers
+Some older assumptions in this file were too absolute and did not match the repo anymore.
 
-Total (current):
-- BASE
-- WINDOW
-- TXT
-- RGB
-- SELECT
+- SELECT mode is not just an encoder-button feature. The board has a dedicated selector button, and current keymaps already use it.
+- The active layer naming is not settled yet. Different keymaps use different layer sets.
+- The OLED driver is currently configured as SSD1306, not SH1106.
+- Per-key RGB is not the current default behavior across the repo. It only appears in the reworked prototype.
+- The project is not yet at a single canonical architecture. Logic is still mostly embedded inside individual keymap files.
 
-Future:
-- expand to 9 layers (1 per key)
+## Current Known Gaps
 
----
+- No single source of truth for layer names and behavior
+- Selector interaction differs between keymaps
+- RGB behavior differs between keymaps
+- OLED behavior differs between keymaps
+- Shared logic has not been extracted into reusable modules yet
+- LED order still needs physical verification on the real strip
+- Build status should be validated with the real QMK build, not editor diagnostics alone
 
-## Layer Behavior
+## Suggested Direction
 
-### BASE
-- calm dual-color breathing
-- two colors alternating or blending
+### Canonical design decisions to make first
 
-### WINDOW
-- blue dominant
-- "electric" feel:
-  - flashing
-  - scanner
-  - sharp transitions
+1. Choose one canonical layer model
+  - Either keep the smaller practical set from VIA/simple
+  - Or adopt the reworked set: BASE, WINDOW, TEXT, RGB, SELECT
 
-### TXT
-- green
-- calm / minimal
-- slow fade or soft breathing
+2. Choose one selector interaction model
+  - Recommended: selector button = enter/hold SELECT, encoder = navigate while in SELECT
+  - Keep encoder press for a secondary action only if it adds something clear
 
-### RGB
-- intentionally flashy
-- rainbow / hue shift / dynamic
+3. Decide whether the project target is:
+  - stable RGBLIGHT-based feedback first
+  - or full custom per-key RGB as the main goal
 
-### SELECT
-- special mode
-- used to choose active layer
-- LEDs represent available layers
+### Technical improvements
 
----
+1. Pick one keymap as the base branch for future work
+  - Recommended: use `reworked` as the feature branch to continue ideas from
+  - Use `simple` as the behavioral reference for fallback and sanity checks
 
-## RGB System
+2. Fix the obvious logic and compile risks before adding features
+  - Remove stale symbols like `selector_target`
+  - Verify SELECT entry/exit behavior is consistent
+  - Confirm the reworked keymap actually builds under QMK
 
-### Modes
+3. Extract shared logic out of keymap files
+  - `selector.c` / selector state machine
+  - `rgb.c` / layer visual rendering
+  - `oled.c` / screen rendering
+  - shared layer names and key labels in one header
 
-#### 1. WILD MODE
-- full animations per layer
-- expressive, dynamic
+4. Lock down LED mapping early
+  - Test the 9 LEDs physically
+  - Keep a single `key_led_map[]`
+  - Document the verified physical routing in this file
 
-#### 2. QUIET MODE
-- minimal
-- only active layer key is lit
-- soft breathing only
+5. Keep the animation model non-blocking
+  - Use timer-driven updates only
+  - Avoid loops that stall matrix scanning
+  - Keep OLED and RGB refresh intervals explicit
 
-Toggle between modes required
+6. Define what QUIET mode means exactly
+  - Recommended: only the current layer slot breathes softly
+  - No auto-cycling unless SELECT mode is active
+  - No full-board effects outside WILD mode
 
----
+## Recommended Next Steps
 
-## SELECT Mode Behavior
+1. Decide which keymap is the canonical implementation target
+2. Fix correctness issues in that keymap before further feature work
+3. Verify and document the real LED strip order
+4. Normalize layer names across notes, OLED labels, and keymaps
+5. Extract selector, RGB, and OLED code into separate modules
+6. Only after that, expand toward more layers or more complex animations
 
-### Enter
-- via encoder button (momentary)
+## Working Assumptions
 
-### While active
-- system cycles through layers automatically
-- interval: ~500ms
-
-### LED behavior
-- currently selected layer = highlighted
-- highlight moves across keys
-
-### Manual control
-- encoder rotation:
-  - next / previous layer
-
-### Exit
-- release encoder button
-- selected layer becomes active
-
----
-
-## OLED Behavior
-
-### Normal mode
-- show:
-  - current layer
-  - last key pressed
-  - key position (row/col)
-
-### SELECT mode
-- different display
-
-Show:
-- key index (1–9)
-- layer name
-
-Example:
-"3  TXT"
-
----
-
-## Key Index Mapping
-
-Keys numbered left → right, top → bottom:
-
-[1][2][3]
-[4][5][6]
-[7][8][9]
-
-Mapping must match LED index mapping
-
----
-
-## Required Features
-
-- per-key RGB control (not global only)
-- LED index mapping table
-- layer-based animation system
-- selector animation (timed + encoder)
-- dual profile system (WILD / QUIET)
-- OLED integration tied to state
-- clean separation of logic:
-  - input
-  - rendering (RGB)
-  - display (OLED)
-
----
-
-## Known Issues
-
-- GitHub Actions:
-  - rework keymap failing
-  - artifacts not always uploaded on failure
-
-- QMK:
-  - currently using RGBLIGHT (limited)
-  - may need custom per-key control via rgblight_sethsv_at()
-
-- keymap structure:
-  - SELECT layer still not clean
-  - encoder logic partially inconsistent
-
----
-
-## Architecture Goals
-
-Refactor into:
-
-- rgb.c / rgb logic section
-- selector system (state machine)
-- oled display module
-- clear layer abstraction
-
-Avoid:
-- hardcoded behavior inside keymap
-- duplicated logic per layer
-
----
-
-## Next Steps
-
-1. Fix keymap compile errors (rework)
-2. implement LED mapping array
-3. build base RGB system (per-key control)
-4. implement SELECT mode animation + timing
-5. integrate encoder control into selector
-6. implement QUIET mode
-7. OLED: add SELECT mode UI
-8. expand to 9 layers
-
----
-
-## Notes for AI
-
-- LEDs are individually addressable
-- treat system like RGB matrix (even if strip)
-- prefer explicit logic over QMK presets
-- animations should be lightweight (RP2040 ok but avoid heavy loops)
-- keep timing non-blocking
+- Treat the strip as individually addressable per-key hardware
+- Prefer explicit state machines over stacked QMK lighting presets
+- Keep behavior lightweight and non-blocking
+- Use actual QMK build results as the source of truth for compile status
+- Keep this file focused on current repo state plus the next intended direction
