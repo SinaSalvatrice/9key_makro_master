@@ -137,22 +137,35 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 // ── Encoder button via matrix_scan (GP8) ────────────────────
 // ── Selector button via matrix_scan (GP12) ──────────────────
 void matrix_scan_user(void) {
-    static bool enc_was_pressed = false;
-    bool        enc_pressed     = (gpio_read_pin(ENCODER_BTN_PIN) == 0);
+    // Encoder button: momentary _SELECT — hold to enter, release to return.
+    // While _SELECT is active the encoder knob cycles layers.
+    static bool    enc_was_pressed  = false;
+    static uint8_t enc_prev_layer   = _BASE;
+    bool           enc_pressed      = (gpio_read_pin(ENCODER_BTN_PIN) == 0);
 
     if (enc_pressed && !enc_was_pressed) {
-        legend_active = !legend_active;  // toggle legend on press
+        enc_prev_layer = active_layer();
+        layer_move(_SELECT);
+    } else if (!enc_pressed && enc_was_pressed) {
+        layer_move(enc_prev_layer);
     }
     enc_was_pressed = enc_pressed;
 
-    static bool sel_was_pressed = false;
-    static uint8_t sel_prev_layer = _BASE;
-    bool        sel_pressed     = (gpio_read_pin(SELECTOR_BTN_PIN) == 0);
+    // Selector button: hold = momentary _TEXT; quick tap = toggle OLED legend.
+    static bool     sel_was_pressed  = false;
+    static uint8_t  sel_prev_layer   = _BASE;
+    static uint32_t sel_press_time   = 0;
+    bool            sel_pressed      = (gpio_read_pin(SELECTOR_BTN_PIN) == 0);
 
     if (sel_pressed && !sel_was_pressed) {
         sel_prev_layer = active_layer();
+        sel_press_time = timer_read32();
         layer_move(_TEXT);
     } else if (!sel_pressed && sel_was_pressed) {
+        if (timer_elapsed32(sel_press_time) < 200) {
+            // Quick tap: toggle legend, stay on current layer
+            legend_active = !legend_active;
+        }
         layer_move(sel_prev_layer);
     }
     sel_was_pressed = sel_pressed;
