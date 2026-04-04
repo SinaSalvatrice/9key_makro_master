@@ -529,6 +529,7 @@ void keyboard_post_init_user(void) {
     gpio_set_pin_input_high(ENCODER_BTN_PIN);
     gpio_set_pin_input_high(SELECTOR_BTN_PIN);
 
+    boot_start          = timer_read32() | 1;
     select_cursor      = slot_for_layer(_BASE);
     select_cycle_timer = timer_read32();
     rgb_frame_timer    = timer_read32();
@@ -544,6 +545,55 @@ static void write_line(uint8_t row, const char *str) {
     snprintf(buf, sizeof(buf), "%-21.21s", str);
     oled_set_cursor(0, row);
     oled_write(buf, false);
+}
+
+static bool get_basic_key_label(uint16_t kc, char *buf, uint8_t buflen) {
+    switch (kc) {
+        case KC_NO:
+            snprintf(buf, buflen, "NO");
+            return true;
+        case KC_UP:
+            snprintf(buf, buflen, "UP");
+            return true;
+        case KC_DOWN:
+            snprintf(buf, buflen, "DOWN");
+            return true;
+        case KC_LEFT:
+            snprintf(buf, buflen, "LEFT");
+            return true;
+        case KC_RGHT:
+            snprintf(buf, buflen, "RGHT");
+            return true;
+        case KC_ENT:
+            snprintf(buf, buflen, "ENT");
+            return true;
+        case KC_SPC:
+            snprintf(buf, buflen, "SPC");
+            return true;
+        case KC_BSPC:
+            snprintf(buf, buflen, "BSPC");
+            return true;
+        case KC_HOME:
+            snprintf(buf, buflen, "HOME");
+            return true;
+        case KC_END:
+            snprintf(buf, buflen, "END");
+            return true;
+        case KC_PGUP:
+            snprintf(buf, buflen, "PGUP");
+            return true;
+        case KC_PGDN:
+            snprintf(buf, buflen, "PGDN");
+            return true;
+        case KC_VOLU:
+            snprintf(buf, buflen, "VOL+");
+            return true;
+        case KC_VOLD:
+            snprintf(buf, buflen, "VOL-");
+            return true;
+    }
+
+    return false;
 }
 
 static void get_key_label(uint16_t kc, char *buf, uint8_t buflen) {
@@ -570,9 +620,11 @@ static void get_key_label(uint16_t kc, char *buf, uint8_t buflen) {
         return;
     }
 
-    const char *s = get_keycode_string(kc);
-    if (s[0] == 'K' && s[1] == 'C' && s[2] == '_') s += 3;
-    snprintf(buf, buflen, "%.*s", buflen - 1, s);
+    if (get_basic_key_label(kc, buf, buflen)) {
+        return;
+    }
+
+    snprintf(buf, buflen, "0x%04X", kc);
 }
 
 static void render_boot(void) {
