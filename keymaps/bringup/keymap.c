@@ -178,12 +178,6 @@ void matrix_scan_user(void) {
 #ifdef RGBLIGHT_ENABLE
 layer_state_t layer_state_set_user(layer_state_t state) {
     switch (get_highest_layer(state)) {
-        case _SELECT:
-            // Fast breathing white — signals selection mode is active
-            rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 2);
-            rgblight_sethsv_noeeprom(0, 0, 200);
-            rgblight_set_speed_noeeprom(200);
-            break;
         case _RGB:
             // Fast rainbow mood — all LEDs flash through hues rapidly, like waterdrops
             rgblight_mode_noeeprom(RGBLIGHT_MODE_RAINBOW_MOOD);
@@ -195,7 +189,7 @@ layer_state_t layer_state_set_user(layer_state_t state) {
             rgblight_mode_noeeprom(RGBLIGHT_MODE_RAINBOW_SWIRL);
             rgblight_set_speed_noeeprom(40);
             break;
-        // _WINDOW, _TEXT — will get their own colour & effect
+        // _WINDOW, _TEXT, _SELECT — will get their own colour & effect
     }
     return state;
 }
@@ -300,7 +294,7 @@ static void render_legend(uint8_t layer) {
         write_line(2 + r, line);
     }
 
-    write_line(5, "  [Sel btn]=toggle");
+    write_line(5, "  [Enc btn]=toggle");
     write_line(6, "");
     write_line(7, "");
 }
@@ -313,14 +307,10 @@ bool oled_task_user(void) {
     }
 
     uint8_t cur = active_layer();
-    // While encoder-SELECT is held, show the base layer being targeted, not SELECT
-    uint8_t display = (cur == _SELECT)
-        ? get_highest_layer((layer_state & ~((layer_state_t)1 << _SELECT)) | default_layer_state)
-        : cur;
-    render_header(display);
+    render_header(cur);
 
     if (legend_active) {
-        render_legend(display);
+        render_legend(cur);
     } else {
         render_keyinfo();
     }
