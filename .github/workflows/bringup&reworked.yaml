@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        keymap: [bringup, reworked]
+        keymap: [bringup, rework]
 
     env:
       KEYBOARD: 9key_makro_master
@@ -50,23 +50,46 @@ jobs:
           cp -R "$GITHUB_WORKSPACE/." "$QMK_HOME/keyboards/$KEYBOARD/"
           rm -rf "$QMK_HOME/keyboards/$KEYBOARD/.git" "$QMK_HOME/keyboards/$KEYBOARD/.github"
 
+      - name: Debug keymaps
+        run: |
+          echo "=== Keymaps ==="
+          find "$QMK_HOME/keyboards/$KEYBOARD/keymaps" -maxdepth 2 -type f | sort || true
+
       - name: Build firmware
+        id: build
+        continue-on-error: true
         run: |
           git config --global --add safe.directory "$QMK_HOME"
           cd "$QMK_HOME"
-          qmk compile -kb "$KEYBOARD" -km "${{ matrix.keymap }}"
+          qmk compile -kb "$KEYBOARD" -km "${{ matrix.keymap }}" 2>&1 | tee "$GITHUB_WORKSPACE/build_${{ matrix.keymap }}.log"
+          exit ${PIPESTATUS[0]}
 
-      - name: Stage artifact
+      - name: Stage uf2 if present
+        if: always()
         run: |
           mkdir -p "$GITHUB_WORKSPACE/artifacts"
-          find "$QMK_HOME" -type f -name "${KEYBOARD}_${{ matrix.keymap }}.uf2" -exec cp {} "$GITHUB_WORKSPACE/artifacts/" \;
-          test -f "$GITHUB_WORKSPACE/artifacts/${KEYBOARD}_${{ matrix.keymap }}.uf2"
+          find "$QMK_HOME" -type f -name "${KEYBOARD}_${{ matrix.keymap }}.uf2" -exec cp {} "$GITHUB_WORKSPACE/artifacts/" \; || true
+          ls -la "$GITHUB_WORKSPACE/artifacts" || true
 
-      - name: Upload firmware
+      - name: Upload uf2
+        if: always() && hashFiles(format('artifacts/{0}_{1}.uf2', env.KEYBOARD, matrix.keymap)) != ''
         uses: actions/upload-artifact@v4
         with:
           name: 9key_makro_master_${{ matrix.keymap }}_uf2
           path: artifacts/9key_makro_master_${{ matrix.keymap }}.uf2
           if-no-files-found: error
           compression-level: 6
-          overwrite: false
+          overwrite: true
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 9key_makro_master_${{ matrix.keymap }}_log
+          path: build_${{ matrix.keymap }}.log
+          if-no-files-found: error
+          overwrite: true
+
+      - name: Fail job if build failed
+        if: steps.build.outcome != 'success'
+        run: exit 1
