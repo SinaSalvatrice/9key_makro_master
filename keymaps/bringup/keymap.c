@@ -56,9 +56,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 
     [_WINDOW] = LAYOUT(
-        MO(_SELECT),            KC_PGDN,           KC_NO,
-        LGUI(LCTL(KC_LEFT)),    KC_PGDN,           LGUI(LCTL(KC_RGHT)),
-        LSA(LALT(KC_TAB)),      KC_NO,             LALT(KC_TAB)
+        MO(_SELECT),            KC_HOME,           KC_NO,
+        LGUI(LCTL(KC_LEFT)),    KC_NO,           LGUI(LCTL(KC_RGHT)),
+        LSA(LALT(KC_TAB)),      KC_END,             LALT(KC_TAB)
     ),
 
     [_TEXT] = LAYOUT(
