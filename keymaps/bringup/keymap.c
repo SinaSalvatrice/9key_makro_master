@@ -135,7 +135,7 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 }
 
 // ── Encoder button via matrix_scan (GP8) ────────────────────
-// ── Selector button via matrix_scan (GP11) ──────────────────
+// ── Selector button via matrix_scan (GP12) ──────────────────
 void matrix_scan_user(void) {
     static bool enc_was_pressed = false;
     bool        enc_pressed     = (gpio_read_pin(ENCODER_BTN_PIN) == 0);
