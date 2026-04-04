@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        keymap: [bringup, rework]
+        keymap: [bringup, reworked]
 
     env:
       KEYBOARD: 9key_makro_master
