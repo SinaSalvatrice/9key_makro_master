@@ -50,7 +50,7 @@ static uint8_t next_layer(uint8_t l) {
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     [_BASE] = LAYOUT(
-        MO(_SELECT),            KC_UP,              KC_BSPC,
+        MO(_SELECT),            KC_UP,              KC_SPC,
         KC_LEFT,                KC_ENT,             KC_RGHT,
         LCTL(KC_Z),             KC_DOWN,            LCTL(KC_R)
     ),
@@ -64,7 +64,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_TEXT] = LAYOUT(
         MO(_SELECT),            LCTL(KC_A),         LCTL(KC_C),
         LCTL(KC_X),             LCTL(KC_V),         KC_RGHT,
-        KC_HOME,                KC_SPACE,           KC_END
+        KC_HOME,                KC_SPACE,           KC_BSPC
     ),
 
     [_RGB] = LAYOUT(
@@ -158,43 +158,28 @@ void matrix_scan_user(void) {
     sel_was_pressed = sel_pressed;
 }
 
+// ── RGB: per-layer colour & effect ───────────────────────────
+#ifdef RGBLIGHT_ENABLE
+layer_state_t layer_state_set_user(layer_state_t state) {
+    switch (get_highest_layer(state)) {
+        case _BASE:
+        default:
+            // Slow moving rainbow swirl — flowing colour wave, gently rhythmic
+            rgblight_mode_noeeprom(RGBLIGHT_MODE_RAINBOW_SWIRL);
+            rgblight_set_speed_noeeprom(40);
+            break;
+        // _WINDOW, _TEXT, _RGB, _SELECT — will get their own colour & effect
+    }
+    return state;
+}
+#endif
+
 // ── Init ────────────────────────────────────────────────────
 void keyboard_post_init_user(void) {
 #ifdef RGBLIGHT_ENABLE
     rgblight_enable_noeeprom();
-    rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
-
-    switch (layer) {
-        case _BASE:
-            rgblight_set_speed_noeeprom(128);
-            rgblight_sethsv_noeeprom(170, 255, 100);
-            break;
-        case _NAV:
-            rgblight_set_speed_noeeprom(128);
-            rgblight_sethsv_noeeprom(145, 220, 100);
-            break;
-        case _EDIT:
-            rgblight_set_speed_noeeprom(128);
-            rgblight_sethsv_noeeprom(50, 255, 100);
-            break;
-        case _MEDIA:
-            rgblight_set_speed_noeeprom(144);
-            rgblight_sethsv_noeeprom(210, 180, 100);
-            break;
-        case _FN:
-            rgblight_set_speed_noeeprom(128);
-            rgblight_sethsv_noeeprom(20, 255, 100);
-            break;
-        case _RGB:
-            rgblight_set_speed_noeeprom(128);
-            rgblight_sethsv_noeeprom(192, 255, 100);
-            break;
-        case _SELECT:
-        default:
-            rgblight_set_speed_noeeprom(192);
-            rgblight_sethsv_noeeprom(0, 255, 100);
-            break;
-    }
+    layer_state_set_user(layer_state);  // apply BASE colours at boot
+#endif
     gpio_set_pin_output(GP25);
     gpio_write_pin_high(GP25);
 
