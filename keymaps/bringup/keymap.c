@@ -163,10 +163,38 @@ void keyboard_post_init_user(void) {
 #ifdef RGBLIGHT_ENABLE
     rgblight_enable_noeeprom();
     rgblight_mode_noeeprom(RGBLIGHT_MODE_BREATHING + 3);
-    rgblight_set_speed_noeeprom(128);
-    rgblight_sethsv_noeeprom(170, 255, 80);
-#endif
 
+    switch (layer) {
+        case _BASE:
+            rgblight_set_speed_noeeprom(128);
+            rgblight_sethsv_noeeprom(170, 255, 100);
+            break;
+        case _NAV:
+            rgblight_set_speed_noeeprom(128);
+            rgblight_sethsv_noeeprom(145, 220, 100);
+            break;
+        case _EDIT:
+            rgblight_set_speed_noeeprom(128);
+            rgblight_sethsv_noeeprom(50, 255, 100);
+            break;
+        case _MEDIA:
+            rgblight_set_speed_noeeprom(144);
+            rgblight_sethsv_noeeprom(210, 180, 100);
+            break;
+        case _FN:
+            rgblight_set_speed_noeeprom(128);
+            rgblight_sethsv_noeeprom(20, 255, 100);
+            break;
+        case _RGB:
+            rgblight_set_speed_noeeprom(128);
+            rgblight_sethsv_noeeprom(192, 255, 100);
+            break;
+        case _SELECT:
+        default:
+            rgblight_set_speed_noeeprom(192);
+            rgblight_sethsv_noeeprom(0, 255, 100);
+            break;
+    }
     gpio_set_pin_output(GP25);
     gpio_write_pin_high(GP25);
 
