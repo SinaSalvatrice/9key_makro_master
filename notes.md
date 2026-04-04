@@ -3,6 +3,12 @@
 ## Goal
 Build a 3x3 RP2040 macro pad with a selector workflow, OLED feedback, and RGB behavior that can evolve from simple layer colors into per-key animated visuals.
 
+## Current Decision
+
+- Use `keymaps/reworked` as the canonical implementation target going forward
+- Use `keymaps/simple` only as a fallback reference for known simpler behavior
+- Do not spend time expanding the other keymaps unless they are needed for comparison or recovery
+
 ## Confirmed Hardware
 
 - RP2040/QMK keyboard
@@ -39,7 +45,8 @@ The repo currently contains multiple parallel keymap implementations rather than
 - Adds timed SELECT cursor cycling at 500 ms
 - Allows encoder rotation while in SELECT mode
 - Adds a more developed OLED UI and custom select keycodes
-- This version looks like the intended direction, but it is still a prototype and needs cleanup and real build validation
+- This is now the chosen direction for future work
+- It still needs cleanup and real build validation
 
 ## Current Reality vs Older Notes
 
@@ -59,7 +66,7 @@ Some older assumptions in this file were too absolute and did not match the repo
 - OLED behavior differs between keymaps
 - Shared logic has not been extracted into reusable modules yet
 - LED order still needs physical verification on the real strip
-- Build status should be validated with the real QMK build, not editor diagnostics alone
+- Real QMK build validation is currently blocked by a local Windows/QMK CLI process issue during version generation, so editor diagnostics are not trustworthy and the compile check still needs a clean environment run
 
 ## Suggested Direction
 
@@ -111,11 +118,11 @@ Some older assumptions in this file were too absolute and did not match the repo
 
 ## Recommended Next Steps
 
-1. Decide which keymap is the canonical implementation target
-2. Fix correctness issues in that keymap before further feature work
-3. Verify and document the real LED strip order
-4. Normalize layer names across notes, OLED labels, and keymaps
-5. Extract selector, RGB, and OLED code into separate modules
+1. Continue fixing correctness issues in `reworked` before further feature work
+2. Verify and document the real LED strip order
+3. Normalize layer names across notes, OLED labels, and keymaps
+4. Extract selector, RGB, and OLED code into separate modules
+5. Run a clean QMK build from an environment where the CLI can invoke git/processes correctly
 6. Only after that, expand toward more layers or more complex animations
 
 ## Working Assumptions
