@@ -148,9 +148,9 @@ void matrix_scan_user(void) {
     bool        enc_pressed     = (gpio_read_pin(ENCODER_BTN_PIN) == 0);
 
     if (enc_pressed && !enc_was_pressed) {
-        layer_move(_SELECT);
+        layer_on(_SELECT);
     } else if (!enc_pressed && enc_was_pressed) {
-        layer_move(enc_prev_layer);
+        layer_off(_SELECT);
     }
     enc_was_pressed = enc_pressed;
 
