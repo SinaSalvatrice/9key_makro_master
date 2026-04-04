@@ -175,13 +175,18 @@ void matrix_scan_user(void) {
 #ifdef RGBLIGHT_ENABLE
 layer_state_t layer_state_set_user(layer_state_t state) {
     switch (get_highest_layer(state)) {
+        case _RGB:
+            // Fast rainbow mood — all LEDs flash through hues rapidly, like waterdrops
+            rgblight_mode_noeeprom(RGBLIGHT_MODE_RAINBOW_MOOD);
+            rgblight_set_speed_noeeprom(220);
+            break;
         case _BASE:
         default:
             // Slow moving rainbow swirl — flowing colour wave, gently rhythmic
             rgblight_mode_noeeprom(RGBLIGHT_MODE_RAINBOW_SWIRL);
             rgblight_set_speed_noeeprom(40);
             break;
-        // _WINDOW, _TEXT, _RGB, _SELECT — will get their own colour & effect
+        // _WINDOW, _TEXT, _SELECT — will get their own colour & effect
     }
     return state;
 }
