@@ -131,27 +131,27 @@ static const char *const vsc_bar_functions[6] = {
 static const char *const vsc_bar_commands[6] = {
     "View: Show Explorer",
     "View: Show Source Control",
-    "GitHub Actions",
-    "GitHub",
-    "ChatGPT",
+    "GitHub Actions: Focus on Workflows View",
+    "GitHub Pull Requests: Focus on GitHub Pull Requests View",
+    "GitHub Copilot Chat: Focus on Chat View",
     ""
 };
 
 static const char *const vsc_chat_labels[6] = {
-    "MSG1", "MSG2", "MSG3", "MSG4", "MSG5", "MSG6"
+    "SUM", "REVW", "FIX", "TEST", "EXPL", "COMMIT"
 };
 
 static const char *const vsc_chat_functions[6] = {
-    "Chat macro 1", "Chat macro 2", "Chat macro 3", "Chat macro 4", "Chat macro 5", "Chat macro 6"
+    "Summarize", "Review", "Suggest fix", "Write tests", "Explain code", "Commit message"
 };
 
 static const char *const vsc_chat_macros[6] = {
-    "TODO: chat macro 1",
-    "TODO: chat macro 2",
-    "TODO: chat macro 3",
-    "TODO: chat macro 4",
-    "TODO: chat macro 5",
-    "TODO: chat macro 6",
+    "Summarize the selected file and list the most important implementation details.",
+    "Review the selected code for bugs, regressions, edge cases, and missing tests.",
+    "Suggest a minimal fix for the current problem and explain the root cause.",
+    "Write focused tests for the selected code path and cover the main edge cases.",
+    "Explain this code step by step, including the important state changes and control flow.",
+    "Write a concise commit message and short body for the current staged changes.",
 };
 
 static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
