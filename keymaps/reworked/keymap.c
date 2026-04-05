@@ -30,6 +30,7 @@ enum layers {
     _TEXT,
     _RGB,
     _DEV,
+    _VSC,
     _SELECT,
     _LAYER_COUNT
 };
@@ -41,6 +42,15 @@ enum custom_keycodes {
     SEL_TEXT,
     SEL_RGB,
     SEL_DEV,
+    SEL_VSC,
+    VSC_BAR,
+    VSC_CHAT,
+    VSC_1,
+    VSC_2,
+    VSC_3,
+    VSC_4,
+    VSC_5,
+    VSC_6,
     RGB_PROFILE
 };
 
@@ -48,6 +58,12 @@ enum custom_keycodes {
 // false = wild per-layer animations
 // true  = reduced profile; only the currently selected layer key breathes
 static bool rgb_minimal_mode = false;
+
+typedef enum {
+    VSC_MODE_NONE,
+    VSC_MODE_BAR,
+    VSC_MODE_CHAT,
+} vsc_mode_t;
 
 typedef enum {
     OLED_VIEW_LEGEND,
@@ -65,6 +81,8 @@ static uint32_t select_cycle_timer  = 0;
 static uint32_t rgb_frame_timer     = 0;
 static uint32_t boot_start          = 0;
 static oled_view_t oled_view        = OLED_VIEW_LEGEND;
+static vsc_mode_t vsc_mode          = VSC_MODE_NONE;
+static vsc_mode_t last_vsc_mode     = VSC_MODE_BAR;
 
 // ── Key -> LED mapping ──────────────────────────────────────
 // Physical key numbering for OLED is row-major / left-to-right:
@@ -97,9 +115,43 @@ static const select_slot_t select_slots[PAD_KEY_COUNT] = {
     { _RGB,    215, 240, 130, "RGB",    true  },  // key 4
     { _SELECT,   0,   0, 120, "SELECT", false },  // key 5 / style toggle
     { _DEV,     18,  255, 130, "DEV",   true  },  // key 6
-    { _SELECT,   0,   0,  24, "FREE",   false },  // key 7
+    { _VSC,    200,  255, 130, "VSC",   true  },  // key 7
     { _SELECT,   0,   0,  24, "FREE",   false },  // key 8
     { _SELECT,   0,   0,  24, "FREE",   false },  // key 9
+};
+
+static const char *const vsc_bar_labels[6] = {
+    "EXPL", "SRC", "GH-A", "GHUB", "GPT", "FREE"
+};
+
+static const char *const vsc_bar_functions[6] = {
+    "Explorer", "Source control", "GitHub Actions", "GitHub", "ChatGPT", "Unused"
+};
+
+static const char *const vsc_bar_commands[6] = {
+    "View: Show Explorer",
+    "View: Show Source Control",
+    "GitHub Actions",
+    "GitHub",
+    "ChatGPT",
+    ""
+};
+
+static const char *const vsc_chat_labels[6] = {
+    "MSG1", "MSG2", "MSG3", "MSG4", "MSG5", "MSG6"
+};
+
+static const char *const vsc_chat_functions[6] = {
+    "Chat macro 1", "Chat macro 2", "Chat macro 3", "Chat macro 4", "Chat macro 5", "Chat macro 6"
+};
+
+static const char *const vsc_chat_macros[6] = {
+    "TODO: chat macro 1",
+    "TODO: chat macro 2",
+    "TODO: chat macro 3",
+    "TODO: chat macro 4",
+    "TODO: chat macro 5",
+    "TODO: chat macro 6",
 };
 
 static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
@@ -128,10 +180,15 @@ static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
         "ALT",   "GUI",   "BTN1",
         "M<-",   "M^",    "M->",
     },
+    [_VSC] = {
+        "SEL",   "BAR",   "CHAT",
+        "EXPL",  "SRC",   "GH-A",
+        "GHUB",  "GPT",   "FREE",
+    },
     [_SELECT] = {
         "BASE", "WIN",  "TXT",
         "RGB",  "FX",   "DEV",
-        "FREE", "FREE", "FREE",
+        "VSC",  "FREE", "FREE",
     },
 };
 
@@ -161,10 +218,15 @@ static const char *const layer_function[_LAYER_COUNT][PAD_KEY_COUNT] = {
         "Hold Alt",       "Hold GUI",       "Mouse button 1",
         "Mouse left",     "Mouse up",       "Mouse right",
     },
+    [_VSC] = {
+        "Select layer",   "BAR mode",       "CHAT mode",
+        "Combo target 1", "Combo target 2", "Combo target 3",
+        "Combo target 4", "Combo target 5", "Combo target 6",
+    },
     [_SELECT] = {
         "Go to base",     "Go to window",   "Go to text",
         "Go to RGB",      "Toggle FX mode", "Go to DEV",
-        "Unused",         "Unused",         "Unused",
+        "Go to VSC",      "Unused",         "Unused",
     },
 };
 
@@ -175,6 +237,7 @@ static const char *layer_name_short(uint8_t l) {
         case _TEXT:   return "TXT";
         case _RGB:    return "RGB";
         case _DEV:    return "DEV";
+        case _VSC:    return "VSC";
         case _SELECT: return "SEL";
         default:      return "BASE";
     }
@@ -187,9 +250,42 @@ static const char *layer_name_long(uint8_t l) {
         case _TEXT:   return "TXT";
         case _RGB:    return "RGB";
         case _DEV:    return "DEV";
+        case _VSC:    return "VSC";
         case _SELECT: return "SELECT";
         default:      return "BASE";
     }
+}
+
+static vsc_mode_t current_vsc_preview_mode(void) {
+    return (vsc_mode == VSC_MODE_CHAT) ? VSC_MODE_CHAT : VSC_MODE_BAR;
+}
+
+static const char *vsc_label_for(vsc_mode_t mode, uint8_t index) {
+    if (index == 0) return "SEL";
+    if (index == 1) return "BAR";
+    if (index == 2) return "CHAT";
+    if (index >= 3 && index < 9) {
+        uint8_t slot = index - 3;
+        if (mode == VSC_MODE_CHAT) {
+            return vsc_chat_labels[slot];
+        }
+        return vsc_bar_labels[slot];
+    }
+    return "----";
+}
+
+static const char *vsc_function_for(vsc_mode_t mode, uint8_t index) {
+    if (index == 0) return "Select layer";
+    if (index == 1) return "Hold BAR mode";
+    if (index == 2) return "Hold CHAT mode";
+    if (index >= 3 && index < 9) {
+        uint8_t slot = index - 3;
+        if (mode == VSC_MODE_CHAT) {
+            return vsc_chat_functions[slot];
+        }
+        return vsc_bar_functions[slot];
+    }
+    return "Unknown";
 }
 
 static uint8_t active_layer_raw(void) {
@@ -220,6 +316,9 @@ static const char *legend_label_for(uint8_t layer, uint8_t row, uint8_t col) {
     if (layer >= _LAYER_COUNT || index >= PAD_KEY_COUNT) {
         return "----";
     }
+    if (layer == _VSC) {
+        return vsc_label_for(current_vsc_preview_mode(), index);
+    }
     return layer_legend[layer][index];
 }
 
@@ -228,7 +327,35 @@ static const char *function_label_for(uint8_t layer, uint8_t row, uint8_t col) {
     if (layer >= _LAYER_COUNT || index >= PAD_KEY_COUNT) {
         return "Unknown";
     }
+    if (layer == _VSC) {
+        return vsc_function_for(last_vsc_mode, index);
+    }
     return layer_function[layer][index];
+}
+
+static void send_vsc_command(const char *command) {
+    if (command == NULL || command[0] == '\0') {
+        return;
+    }
+
+    tap_code16(C(S(KC_P)));
+    wait_ms(30);
+    send_string(command);
+    tap_code(KC_ENT);
+}
+
+static void trigger_vsc_target(uint8_t slot) {
+    if (slot >= 6) {
+        return;
+    }
+
+    last_vsc_mode = vsc_mode;
+
+    if (vsc_mode == VSC_MODE_BAR) {
+        send_vsc_command(vsc_bar_commands[slot]);
+    } else if (vsc_mode == VSC_MODE_CHAT) {
+        send_string(vsc_chat_macros[slot]);
+    }
 }
 
 static uint8_t lerp8(uint8_t a, uint8_t b, uint8_t t) {
@@ -350,6 +477,17 @@ static void render_dev_wild(void) {
     }
 }
 
+static void render_vsc_wild(void) {
+    uint32_t now = timer_read32();
+    for (uint8_t i = 0; i < PAD_KEY_COUNT; i++) {
+        uint8_t swing = triwave8_period(now, 1800, i * 21);
+        uint8_t hue   = lerp8(160, 215, swing);
+        uint8_t sat   = (i >= 3) ? 255 : 210;
+        uint8_t val   = pulse_val(now, 1100 + (i * 30), i * 13, 18, 145);
+        set_key_hsv(i, hue, sat, val);
+    }
+}
+
 static void render_select_wild(void) {
     uint32_t now = timer_read32();
     for (uint8_t i = 0; i < PAD_KEY_COUNT; i++) {
@@ -400,6 +538,9 @@ static void render_rgb_layer_visuals(void) {
         case _DEV:
             render_dev_wild();
             break;
+        case _VSC:
+            render_vsc_wild();
+            break;
         case _SELECT:
             render_select_wild();
             break;
@@ -442,11 +583,17 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         MS_LEFT,     MS_UP,    MS_RGHT
     ),
 
+    [_VSC] = LAYOUT(
+        MO(_SELECT), VSC_BAR,  VSC_CHAT,
+        VSC_1,       VSC_2,    VSC_3,
+        VSC_4,       VSC_5,    VSC_6
+    ),
+
     // 1..9 = physical key numbering left to right
     [_SELECT] = LAYOUT(
         SEL_BASE,   SEL_WINDOW, SEL_TEXT,
         SEL_RGB,    RGB_PROFILE, SEL_DEV,
-        KC_NO,      KC_NO,      KC_NO
+        SEL_VSC,    KC_NO,      KC_NO
     ),
 };
 
@@ -524,6 +671,27 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 select_target_layer(_DEV);
             }
             return false;
+        case SEL_VSC:
+            if (record->event.pressed) {
+                select_target_layer(_VSC);
+            }
+            return false;
+        case VSC_BAR:
+            vsc_mode = record->event.pressed ? VSC_MODE_BAR : VSC_MODE_NONE;
+            return false;
+        case VSC_CHAT:
+            vsc_mode = record->event.pressed ? VSC_MODE_CHAT : VSC_MODE_NONE;
+            return false;
+        case VSC_1:
+        case VSC_2:
+        case VSC_3:
+        case VSC_4:
+        case VSC_5:
+        case VSC_6:
+            if (record->event.pressed) {
+                trigger_vsc_target((uint8_t)(keycode - VSC_1));
+            }
+            return false;
         case RGB_PROFILE:
             if (record->event.pressed) {
                 rgb_minimal_mode = !rgb_minimal_mode;
@@ -560,6 +728,9 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
             break;
         case _DEV:
             tap_code(clockwise ? MS_WHLU : MS_WHLD);
+            break;
+        case _VSC:
+            tap_code16(clockwise ? C(KC_PGDN) : C(KC_PGUP));
             break;
         case _SELECT:
             select_cursor = next_select_slot(select_cursor, clockwise);
@@ -771,6 +942,8 @@ static void render_legend_view(uint8_t layer) {
 
     if (layer == _SELECT) {
         snprintf(line, sizeof(line), "Cursor %u -> %.10s", select_cursor + 1, select_slots[select_cursor].name);
+    } else if (layer == _VSC) {
+        snprintf(line, sizeof(line), "%s mode", (vsc_mode == VSC_MODE_CHAT) ? "CHAT" : "BAR");
     } else {
         snprintf(line, sizeof(line), "BTN view  GP12 TXT");
     }
