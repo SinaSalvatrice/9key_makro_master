@@ -132,3 +132,20 @@ Some older assumptions in this file were too absolute and did not match the repo
 - Keep behavior lightweight and non-blocking
 - Use actual QMK build results as the source of truth for compile status
 - Keep this file focused on current repo state plus the next intended direction
+
+
+## issues and improvements
+
+- i want the display to show a table with wich keys have to be pushed to enter certain layer. 
+
+- rgb mode is stuck on "only active layerkey is lit
+
+-enc btn press should toggle between a legend with keycodes on the active layer, and a "last pressed key" mode, that shows layername, keycode, function and coordinate in the matrix 
+
+- GPIO12 should be changed from selector to momentary TXT
+
+- Selector stays on the first matrix key. enc btn changes, and gpio12 changes
+
+
+
+

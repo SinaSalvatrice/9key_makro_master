@@ -20,8 +20,8 @@
 #define PAD_KEY_COUNT        9
 #define RGB_FRAME_MS         33
 #define SELECT_STEP_MS       500
-#define BUTTON_TAP_MS        180
 #define BOOT_TOTAL_MS        2800
+#define BUTTON_DEBOUNCE_MS   150
 
 // ── Layer enum ──────────────────────────────────────────────
 enum layers {
@@ -47,8 +47,14 @@ enum custom_keycodes {
 // true  = reduced profile; only the currently selected layer key breathes
 static bool rgb_minimal_mode = false;
 
+typedef enum {
+    OLED_VIEW_LEGEND,
+    OLED_VIEW_LAST_KEY,
+} oled_view_t;
+
 // ── OLED / state tracking ───────────────────────────────────
 static uint16_t last_keycode    = KC_NO;
+static uint8_t  last_key_layer  = _BASE;
 static uint8_t  last_row        = 0;
 static uint8_t  last_col        = 0;
 static uint8_t  select_return_layer = _BASE;
@@ -56,6 +62,7 @@ static uint8_t  select_cursor       = 0;
 static uint32_t select_cycle_timer  = 0;
 static uint32_t rgb_frame_timer     = 0;
 static uint32_t boot_start          = 0;
+static oled_view_t oled_view        = OLED_VIEW_LEGEND;
 
 // ── Key -> LED mapping ──────────────────────────────────────
 // Physical key numbering for OLED is row-major / left-to-right:
@@ -91,6 +98,62 @@ static const select_slot_t select_slots[PAD_KEY_COUNT] = {
     { _SELECT,   0,   0,  24, "FREE",   false },  // key 7
     { _SELECT,   0,   0,  24, "FREE",   false },  // key 8
     { _SELECT,   0,   0,  24, "FREE",   false },  // key 9
+};
+
+static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
+    [_BASE] = {
+        "SEL",  "UP",   "SPC",
+        "LEFT", "ENT",  "RGHT",
+        "C-Z",  "DOWN", "C-R",
+    },
+    [_WINDOW] = {
+        "SEL",  "HOME", "NO",
+        "DESK<", "NO",  "DESK>",
+        "TASK<", "END", "TASK>",
+    },
+    [_TEXT] = {
+        "SEL",  "C-A",  "C-C",
+        "C-X",  "C-V",  "RGHT",
+        "HOME", "SPC",  "BSPC",
+    },
+    [_RGB] = {
+        "SEL",  "SPD-", "TOG",
+        "HUE+", "HUE-", "VAL+",
+        "SAT+", "SAT-", "VAL-",
+    },
+    [_SELECT] = {
+        "BASE", "WIN",  "TXT",
+        "RGB",  "FX",   "FREE",
+        "FREE", "FREE", "FREE",
+    },
+};
+
+static const char *const layer_function[_LAYER_COUNT][PAD_KEY_COUNT] = {
+    [_BASE] = {
+        "Select layer",   "Arrow up",       "Space",
+        "Arrow left",     "Enter",          "Arrow right",
+        "Undo",           "Arrow down",     "Redo",
+    },
+    [_WINDOW] = {
+        "Select layer",   "Jump home",      "Unused",
+        "Prev desktop",   "Unused",         "Next desktop",
+        "Prev task",      "Jump end",       "Next task",
+    },
+    [_TEXT] = {
+        "Select layer",   "Select all",     "Copy",
+        "Cut",            "Paste",          "Cursor right",
+        "Line start",     "Space",          "Backspace",
+    },
+    [_RGB] = {
+        "Select layer",   "Speed down",     "Toggle RGB",
+        "Hue up",         "Hue down",       "Brightness up",
+        "Saturation up",  "Saturation down", "Brightness down",
+    },
+    [_SELECT] = {
+        "Go to base",     "Go to window",   "Go to text",
+        "Go to RGB",      "Toggle FX mode", "Unused",
+        "Unused",         "Unused",         "Unused",
+    },
 };
 
 static const char *layer_name_short(uint8_t l) {
@@ -144,15 +207,20 @@ static uint8_t next_select_slot(uint8_t idx, bool clockwise) {
     return idx;
 }
 
-static void enter_select_mode(void) {
-    select_return_layer = active_base_layer();
-    select_cursor       = slot_for_layer(select_return_layer);
-    select_cycle_timer  = timer_read32();
-    layer_move(_SELECT);
+static const char *legend_label_for(uint8_t layer, uint8_t row, uint8_t col) {
+    uint8_t index = (row * MATRIX_COLS) + col;
+    if (layer >= _LAYER_COUNT || index >= PAD_KEY_COUNT) {
+        return "----";
+    }
+    return layer_legend[layer][index];
 }
 
-static void leave_select_mode(void) {
-    layer_move(select_return_layer);
+static const char *function_label_for(uint8_t layer, uint8_t row, uint8_t col) {
+    uint8_t index = (row * MATRIX_COLS) + col;
+    if (layer >= _LAYER_COUNT || index >= PAD_KEY_COUNT) {
+        return "Unknown";
+    }
+    return layer_function[layer][index];
 }
 
 static uint8_t lerp8(uint8_t a, uint8_t b, uint8_t t) {
@@ -397,6 +465,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
     if (record->event.pressed) {
         last_keycode = keycode;
+        last_key_layer = active_layer_raw();
         last_row     = record->event.key.row;
         last_col     = record->event.key.col;
     }
@@ -465,43 +534,27 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 
 // ── Buttons + animation pump ────────────────────────────────
 void matrix_scan_user(void) {
-    // Encoder button: hold = momentary _SELECT
+    // Encoder button: toggle OLED mode
     static bool enc_was_pressed = false;
+    static uint32_t enc_last_toggle = 0;
     bool        enc_pressed     = (gpio_read_pin(ENCODER_BTN_PIN) == 0);
 
-    if (enc_pressed && !enc_was_pressed) {
-        enter_select_mode();
-    } else if (!enc_pressed && enc_was_pressed && active_layer_raw() == _SELECT) {
-        leave_select_mode();
+    if (enc_pressed && !enc_was_pressed && timer_elapsed32(enc_last_toggle) > BUTTON_DEBOUNCE_MS) {
+        oled_view = (oled_view == OLED_VIEW_LEGEND) ? OLED_VIEW_LAST_KEY : OLED_VIEW_LEGEND;
+        enc_last_toggle = timer_read32();
     }
     enc_was_pressed = enc_pressed;
 
-    // Selector button:
-    // quick tap  = toggle RGB profile
-    // hold       = momentary _SELECT
-    static bool     sel_was_pressed      = false;
-    static bool     sel_hold_entered     = false;
-    static uint32_t sel_press_time       = 0;
-    bool            sel_pressed          = (gpio_read_pin(SELECTOR_BTN_PIN) == 0);
+    // GP12: momentary TXT layer
+    static bool txt_was_pressed = false;
+    bool        txt_pressed     = (gpio_read_pin(SELECTOR_BTN_PIN) == 0);
 
-    if (sel_pressed && !sel_was_pressed) {
-        sel_press_time   = timer_read32();
-        sel_hold_entered = false;
-    } else if (sel_pressed && sel_was_pressed && !sel_hold_entered) {
-        if (timer_elapsed32(sel_press_time) > BUTTON_TAP_MS) {
-            enter_select_mode();
-            sel_hold_entered = true;
-        }
-    } else if (!sel_pressed && sel_was_pressed) {
-        if (sel_hold_entered) {
-            if (active_layer_raw() == _SELECT) {
-                leave_select_mode();
-            }
-        } else if (timer_elapsed32(sel_press_time) < BUTTON_TAP_MS) {
-            rgb_minimal_mode = !rgb_minimal_mode;
-        }
+    if (txt_pressed && !txt_was_pressed) {
+        layer_on(_TEXT);
+    } else if (!txt_pressed && txt_was_pressed) {
+        layer_off(_TEXT);
     }
-    sel_was_pressed = sel_pressed;
+    txt_was_pressed = txt_pressed;
 
     if (active_layer_raw() == _SELECT && timer_elapsed32(select_cycle_timer) >= SELECT_STEP_MS) {
         select_cursor = next_select_slot(select_cursor, true);
@@ -646,46 +699,61 @@ static void render_boot(void) {
 
 static void render_header(uint8_t layer) {
     char line[22];
-    snprintf(line, sizeof(line), "%-6s  FX:%s",
-             layer_name_short(layer),
-             rgb_minimal_mode ? "QUIET" : "WILD");
+    snprintf(line, sizeof(line), "%-6s FX:%s",
+             layer_name_short(layer), rgb_minimal_mode ? "Q" : "W");
     write_line(0, line);
 }
 
-static void render_keyinfo(void) {
-    char buf[22];
-    char label[16];
-    get_key_label(last_keycode, label, sizeof(label));
+static void render_legend_view(uint8_t layer) {
+    char line[22];
 
-    write_line(1, "---------------------");
-    snprintf(buf, sizeof(buf), "Layer: %s", layer_name_long(active_base_layer()));
+    render_header(layer);
+    write_line(1, "1      2      3");
+    snprintf(line, sizeof(line), "%-6.6s %-6.6s %-6.6s",
+             legend_label_for(layer, 0, 0),
+             legend_label_for(layer, 0, 1),
+             legend_label_for(layer, 0, 2));
+    write_line(2, line);
+    write_line(3, "4      5      6");
+    snprintf(line, sizeof(line), "%-6.6s %-6.6s %-6.6s",
+             legend_label_for(layer, 1, 0),
+             legend_label_for(layer, 1, 1),
+             legend_label_for(layer, 1, 2));
+    write_line(4, line);
+    write_line(5, "7      8      9");
+    snprintf(line, sizeof(line), "%-6.6s %-6.6s %-6.6s",
+             legend_label_for(layer, 2, 0),
+             legend_label_for(layer, 2, 1),
+             legend_label_for(layer, 2, 2));
+    write_line(6, line);
+
+    if (layer == _SELECT) {
+        snprintf(line, sizeof(line), "Cursor %u -> %.10s", select_cursor + 1, select_slots[select_cursor].name);
+    } else {
+        snprintf(line, sizeof(line), "BTN view  GP12 TXT");
+    }
+    write_line(7, line);
+}
+
+static void render_last_key_view(void) {
+    char buf[22];
+    const char *label = legend_label_for(last_key_layer, last_row, last_col);
+    const char *func  = function_label_for(last_key_layer, last_row, last_col);
+
+    render_header(last_key_layer);
+    write_line(1, "LAST KEY");
+    snprintf(buf, sizeof(buf), "Layer: %s", layer_name_long(last_key_layer));
     write_line(2, buf);
     snprintf(buf, sizeof(buf), "Key:   %.14s", label);
     write_line(3, buf);
     snprintf(buf, sizeof(buf), "Code:  0x%04X", last_keycode);
     write_line(4, buf);
+    snprintf(buf, sizeof(buf), "Func:  %.14s", func);
+    write_line(5, buf);
     snprintf(buf, sizeof(buf), "Pos:   %u (%u,%u)",
              (last_row * 3) + last_col + 1, last_row, last_col);
-    write_line(5, buf);
-    write_line(6, "");
-    write_line(7, "");
-}
-
-static void render_select_view(void) {
-    char buf[22];
-    const select_slot_t *slot = &select_slots[select_cursor];
-
-    write_line(0, "SELECT     PREVIEW");
-    write_line(1, "---------------------");
-    snprintf(buf, sizeof(buf), "Key:   %u", select_cursor + 1);
-    write_line(2, buf);
-    snprintf(buf, sizeof(buf), "Layer: %s", slot->name);
-    write_line(3, buf);
-    snprintf(buf, sizeof(buf), "FX:    %s", rgb_minimal_mode ? "QUIET" : "WILD");
-    write_line(4, buf);
-    write_line(5, slot->selectable ? "Press key = enter" : "Center = FX toggle");
-    write_line(6, "Hold = auto cycle");
-    write_line(7, "Enc  = manual step");
+    write_line(6, buf);
+    write_line(7, "BTN legend");
 }
 
 bool oled_task_user(void) {
@@ -694,11 +762,10 @@ bool oled_task_user(void) {
         return false;
     }
 
-    if (active_layer_raw() == _SELECT) {
-        render_select_view();
+    if (oled_view == OLED_VIEW_LAST_KEY) {
+        render_last_key_view();
     } else {
-        render_header(active_base_layer());
-        render_keyinfo();
+        render_legend_view(active_layer_raw());
     }
 
     return false;
