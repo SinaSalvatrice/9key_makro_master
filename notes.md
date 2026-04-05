@@ -162,40 +162,45 @@ WINDOW
 - `WIN<` / `WIN>` = previous/next window
 - `DESK<` / `DESK>` = previous/next desktop
 
+## DEV Layer
+
+- `DEV` stays as a separate experimental layer for later mousekey and modifier work
+- Do not repurpose it for VS Code shortcuts
+
 ## VSC Layer
 
-- `VSC` replaces the older `DEV` experiment idea
-- Current bindings are focused on general Visual Studio Code navigation
-- Current top rows:
-  - `EXPL` = Explorer
-  - `SRCH` = Search
-  - `GIT` = Source Control
-  - `RUN` = Run and Debug
-  - `EXT` = Extensions
-- Bottom row currently uses editor navigation shortcuts and can still be changed
+- `VSC` is an additional layer, not a replacement for `DEV`
+- Top row is:
+  - `SEL` = selector access
+  - `BAR` = hold to target VS Code side-bar / extension views
+  - `CHAT` = hold to target text macros for prompts or canned messages
+- The lower six keys are shared combo targets for the currently held `BAR` or `CHAT` modifier
+
+Current `BAR` targets
+- `EXPL` = Explorer
+- `SRC` = Source Control
+- `GH-A` = GitHub Actions
+- `GHUB` = GitHub Pull Requests / GitHub view
+- `GPT` = Copilot Chat view
+- `FREE` = spare slot
+
+Current `CHAT` targets
+- `SUM` = summarize selected file/code
+- `REVW` = review selected code
+- `FIX` = suggest a minimal fix
+- `TEST` = write tests
+- `EXPL` = explain code
+- `COMMIT` = write commit message text
+
+- The chat macro strings live in one editable block in the keymap and are intended to be easy to replace later
+- OLED should reflect the active `BAR` vs `CHAT` combo context on the `VSC` layer
 
 ## Remaining TODO
 
 - Decide whether QUIET mode should stay at all
 - Test the `VSC` shortcuts on the real host setup
-- Decide whether the `VSC` layer should target specific tools like GitHub Actions or stay focused on general VS Code navigation
-- Add one or two customizable chat macros if they are still wanted
+- Verify the exact command palette names for GitHub Actions / GitHub / Copilot Chat in the installed extension set
+- Replace the default chat macros with your real prompt/message text
 - Verify LED order on hardware
 - Run a clean QMK build in a known-good environment
-
-## VSC layer
-
-- I need a VSC layer. its called "VSC" 
-
-- included are ahortcuts like: Explorer, github actions, source, or simply move through actibvity bar should do it aswell. 
-
-- The first three matrix keys are modifiers (the selector stays untouched, BAR and CHAT)
-
-- impliment a Kombokey system on this particular layer, fit the oled output.
-
-- CHAT Kombos : there i want to place makros for messages and prompts, just take something that i can easily edit.
-
-- BAR kombos : starts in row 1 with
-explorer, source control, github actions, github and chatgpt. 
-leave the rest free if there is any space left.
 
