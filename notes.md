@@ -146,6 +146,16 @@ Some older assumptions in this file were too absolute and did not match the repo
 
 - Selector stays on the first matrix key. enc btn changes, and gpio12 changes
 
+## extended encoder actions
 
+- standalone turning should behave different on certain layers.
+
+- on TXT it should select forward and backwards
+
+- on RGB the brightness changes
+
+- on BASE, Volume up and down
+
+- on WINDOW the next or previous window should be selectet (not desktop)
 
 

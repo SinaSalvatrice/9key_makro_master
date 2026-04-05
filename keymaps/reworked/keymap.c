@@ -112,9 +112,9 @@ static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
         "TASK<", "END", "TASK>",
     },
     [_TEXT] = {
-        "SEL",  "C-A",  "C-C",
-        "C-X",  "C-V",  "RGHT",
-        "HOME", "SPC",  "BSPC",
+        "SEL",   "ALL",   "COPY",
+        "CUT",   "PASTE", "RGHT",
+        "POS1",  "SPC",   "END",
     },
     [_RGB] = {
         "SEL",  "SPD-", "TOG",
@@ -405,7 +405,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_TEXT] = LAYOUT(
         MO(_SELECT), LCTL(KC_A), LCTL(KC_C),
         LCTL(KC_X),  LCTL(KC_V), KC_RGHT,
-        KC_HOME,     KC_SPC,     KC_BSPC
+        KC_HOME,     KC_SPC,     KC_END,
     ),
 
     [_RGB] = LAYOUT(
@@ -511,12 +511,16 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
             tap_code(clockwise ? KC_VOLU : KC_VOLD);
             break;
         case _WINDOW:
-            tap_code(clockwise ? KC_PGDN : KC_PGUP);
+            if (clockwise) {
+                tap_code16(LALT(KC_TAB));
+            } else {
+                tap_code16(LSA(LALT(KC_TAB)));
+            }
             break;
         case _TEXT:
-            register_code(KC_LCTL);
+            register_code(KC_LSFT);
             tap_code(clockwise ? KC_RGHT : KC_LEFT);
-            unregister_code(KC_LCTL);
+            unregister_code(KC_LSFT);
             break;
         case _RGB:
             tap_code16(clockwise ? UG_VALU : UG_VALD);
