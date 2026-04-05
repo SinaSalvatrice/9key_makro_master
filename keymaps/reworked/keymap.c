@@ -104,12 +104,12 @@ static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
     [_BASE] = {
         "SEL",  "UP",   "SPC",
         "LEFT", "ENT",  "RGHT",
-        "C-Z",  "DOWN", "C-R",
+        "UNDO",  "DOWN", "REDO",
     },
     [_WINDOW] = {
         "SEL",  "HOME", "NO",
         "DESK<", "NO",  "DESK>",
-        "TASK<", "END", "TASK>",
+        "WIN<", "END", "WIN>",
     },
     [_TEXT] = {
         "SEL",   "ALL",   "COPY",
@@ -180,12 +180,6 @@ static const char *layer_name_long(uint8_t l) {
 
 static uint8_t active_layer_raw(void) {
     return get_highest_layer(layer_state | default_layer_state);
-}
-
-static uint8_t active_base_layer(void) {
-    layer_state_t state = (layer_state | default_layer_state) & ~((layer_state_t)1 << _SELECT);
-    uint8_t       l     = get_highest_layer(state);
-    return (l >= _SELECT) ? _BASE : l;
 }
 
 static uint8_t slot_for_layer(uint8_t layer) {
@@ -405,7 +399,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_TEXT] = LAYOUT(
         MO(_SELECT), LCTL(KC_A), LCTL(KC_C),
         LCTL(KC_X),  LCTL(KC_V), KC_RGHT,
-        KC_HOME,     KC_SPC,     KC_END,
+        KC_HOME,     KC_SPC,     KC_END
     ),
 
     [_RGB] = LAYOUT(
@@ -651,37 +645,6 @@ static bool get_basic_key_label(uint16_t kc, char *buf, uint8_t buflen) {
     }
 
     return false;
-}
-
-static void get_key_label(uint16_t kc, char *buf, uint8_t buflen) {
-    switch (kc) {
-        case SEL_BASE:
-            snprintf(buf, buflen, "BASE");
-            return;
-        case SEL_WINDOW:
-            snprintf(buf, buflen, "WIN");
-            return;
-        case SEL_TEXT:
-            snprintf(buf, buflen, "TXT");
-            return;
-        case SEL_RGB:
-            snprintf(buf, buflen, "RGB");
-            return;
-        case RGB_PROFILE:
-            snprintf(buf, buflen, "STYLE");
-            return;
-    }
-
-    if (kc == MO(_SELECT)) {
-        snprintf(buf, buflen, "SEL");
-        return;
-    }
-
-    if (get_basic_key_label(kc, buf, buflen)) {
-        return;
-    }
-
-    snprintf(buf, buflen, "0x%04X", kc);
 }
 
 static void render_boot(void) {
