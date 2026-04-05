@@ -2,6 +2,7 @@ name: Build 9key_makro_master reworked
 
 on:
   workflow_dispatch:
+  repository_dispatch:
   push:
     branches: [ oledworking ]
     paths:
