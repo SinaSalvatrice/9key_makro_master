@@ -1,16 +1,18 @@
 # 9key_makro_master - Project Notes
 
-## Goal
-Build a 3x3 RP2040 macro pad with a selector workflow, OLED feedback, and RGB behavior that can evolve from simple layer colors into per-key animated visuals.
+## My Part
 
-## Current Decision
+### Overview
 
-- Use `keymaps/reworked` as the canonical implementation target going forward
-- Use `keymaps/simple` only as a fallback reference for known simpler behavior
-- Do not spend time expanding the other keymaps unless they are needed for comparison or recovery
+#### Goal
+- Build a 3x3 RP2040 macro pad with a selector workflow, OLED feedback, and RGB behavior that can evolve from simple layer colors into per-key animated visuals.
 
-## Confirmed Hardware
+#### Intent
+- Use `keymaps/reworked` as the canonical implementation target going forward.
+- Use `keymaps/simple` only as a fallback reference for known simpler behavior.
+- Do not spend time expanding the other keymaps unless they are needed for comparison or recovery.
 
+#### Hardware
 - RP2040/QMK keyboard
 - 3x3 matrix
 - 1 WS2812 LED per key, 9 total
@@ -19,143 +21,162 @@ Build a 3x3 RP2040 macro pad with a selector workflow, OLED feedback, and RGB be
 - Encoder push button on GP8
 - Separate selector button on GP12
 
-## What Happened So Far
+### Layers
 
-The repo currently contains multiple parallel keymap implementations rather than one settled design.
+#### Ideas
+- Long-term target is one useful layer per physical key slot in the selector grid.
+- Current named layers are `BASE`, `WINDOW`, `TEXT`, `RGB`, `DEV`, `VSC`, `SELECT`.
+- `DEV` should stay available for later experiments.
+- `VSC` should stay focused on VS Code workflows.
 
-### 1. Simple keymap
-- Uses a dedicated selector button on GP12 to hold the SELECT layer
-- Has a compact layer set: BASE, L1, L2, SELECT
-- RGB is still global layer feedback through RGBLIGHT presets
-- OLED already shows layer, last keycode, and key position
-- This is the clearest working baseline conceptually
+#### Suggestions
+- Keep adding layers until each selector slot has a real purpose.
 
-### 2. VIA keymap
-- Expands the layer model to BASE, NAV, EDIT, MEDIA, FN, RGB, SELECT
-- Keeps the separate selector button and uses the encoder button mainly for wake behavior
-- OLED UI is still simple and readable
-- RGB is still mostly based on RGBLIGHT modes, not true per-key rendering
-- Contains at least one obvious code issue: `refresh_feedback()` references `selector_target`, which is not defined
+### OLED
 
-### 3. Reworked keymap
-- This is the most ambitious prototype and is closest to the original design vision
-- Introduces explicit per-key LED rendering through `rgblight_sethsv_at()`
-- Adds a key-to-LED mapping array
-- Adds WILD vs QUIET RGB profiles
-- Adds timed SELECT cursor cycling at 500 ms
-- Allows encoder rotation while in SELECT mode
-- Adds a more developed OLED UI and custom select keycodes
-- This is now the chosen direction for future work
-- It still needs cleanup and real build validation
+#### Ideas
+TXT:
+- `COPY` = copy
+- `CUT` = cut
+- `ALL` = select all
+- `PASTE` = paste
+- `POS1` = line start / home
 
-## Current Reality vs Older Notes
+WINDOW:
+- `WIN<` / `WIN>` = previous/next window
+- `DESK<` / `DESK>` = previous/next desktop
 
-Some older assumptions in this file were too absolute and did not match the repo anymore.
+### RGB
 
-- SELECT mode is not just an encoder-button feature. The board has a dedicated selector button, and current keymaps already use it.
-- The active layer naming is not settled yet. Different keymaps use different layer sets.
-- The OLED driver is currently configured as SSD1306, not SH1106.
-- Per-key RGB is not the current default behavior across the repo. It only appears in the reworked prototype.
-- The project is not yet at a single canonical architecture. Logic is still mostly embedded inside individual keymap files.
+#### Questions
+- Should QUIET mode stay at all?
 
-## Current Known Gaps
+### VSC
 
-- No single source of truth for layer names and behavior
-- Selector interaction differs between keymaps
-- RGB behavior differs between keymaps
-- OLED behavior differs between keymaps
-- Shared logic has not been extracted into reusable modules yet
-- LED order still needs physical verification on the real strip
-- Real QMK build validation is currently blocked by a local Windows/QMK CLI process issue during version generation, so editor diagnostics are not trustworthy and the compile check still needs a clean environment run
+#### Ideas
+- `VSC` is an additional layer, not a replacement for `DEV`.
+- Top row should stay `SEL`, `BAR`, `CHAT`.
+- The lower six keys are shared combo targets for the held `BAR` or `CHAT` modifier.
 
-## Suggested Direction
+#### Suggestions
+Current `BAR` targets:
+- `EXPL` = Explorer
+- `SRC` = Source Control
+- `GH-A` = GitHub Actions
+- `GHUB` = GitHub / Pull Requests view
+- `GPT` = Copilot Chat view
+- `FREE` = spare slot
 
-### Canonical design decisions to make first
+Current `CHAT` targets:
+- `SUM` = summarize selected file/code
+- `REVW` = review selected code
+- `FIX` = suggest a minimal fix
+- `TEST` = write tests
+- `EXPL` = explain code
+- `COMMIT` = write commit message text
 
-1. Choose one canonical layer model
-  - Either keep the smaller practical set from VIA/simple
-  - Or adopt the reworked set: BASE, WINDOW, TEXT, RGB, SELECT
+#### Issues
+- The default chat macros still need to be replaced with real prompt/message text.
 
-2. Choose one selector interaction model
-  - Recommended: selector button = enter/hold SELECT, encoder = navigate while in SELECT
-  - Keep encoder press for a secondary action only if it adds something clear
+## Your Part
 
-3. Decide whether the project target is:
-  - stable RGBLIGHT-based feedback first
-  - or full custom per-key RGB as the main goal
+### Repository
 
-### Technical improvements
+#### Status
+- The repo currently contains multiple parallel keymap implementations rather than one settled design.
 
-1. Pick one keymap as the base branch for future work
-  - Recommended: use `reworked` as the feature branch to continue ideas from
-  - Use `simple` as the behavioral reference for fallback and sanity checks
+#### Simple
+- Uses a dedicated selector button on GP12 to hold the SELECT layer.
+- Has a compact layer set: `BASE`, `L1`, `L2`, `SELECT`.
+- RGB is still global layer feedback through RGBLIGHT presets.
+- OLED already shows layer, last keycode, and key position.
 
-2. Fix the obvious logic and compile risks before adding features
-  - Remove stale symbols like `selector_target`
-  - Verify SELECT entry/exit behavior is consistent
-  - Confirm the reworked keymap actually builds under QMK
+#### VIA
+- Expands the layer model to `BASE`, `NAV`, `EDIT`, `MEDIA`, `FN`, `RGB`, `SELECT`.
+- Keeps the separate selector button and uses the encoder button mainly for wake behavior.
 
-3. Extract shared logic out of keymap files
-  - `selector.c` / selector state machine
-  - `rgb.c` / layer visual rendering
-  - `oled.c` / screen rendering
-  - shared layer names and key labels in one header
+#### Issues
+- VIA contains at least one obvious code issue: `refresh_feedback()` references `selector_target`, which is not defined.
 
-4. Lock down LED mapping early
-  - Test the 9 LEDs physically
-  - Keep a single `key_led_map[]`
-  - Document the verified physical routing in this file
+### Layers
 
-5. Keep the animation model non-blocking
-  - Use timer-driven updates only
-  - Avoid loops that stall matrix scanning
-  - Keep OLED and RGB refresh intervals explicit
+#### Implemented
+- Reworked is the active implementation target.
+- Reworked uses the layer set `BASE`, `WINDOW`, `TEXT`, `RGB`, `DEV`, `VSC`, `SELECT`.
+- Selector slots and custom select keycodes are implemented.
 
-6. Define what QUIET mode means exactly
-  - Recommended: only the current layer slot breathes softly
-  - No auto-cycling unless SELECT mode is active
-  - No full-board effects outside WILD mode
+#### Issues
+- No single source of truth for shared layer logic outside the keymap yet.
+- Shared logic has not been extracted into modules yet.
 
-## Recommended Next Steps
+### Input And Navigation
 
-1. Continue fixing correctness issues in `reworked` before further feature work
-2. Verify and document the real LED strip order
-3. Normalize layer names across notes, OLED labels, and keymaps
-4. Extract selector, RGB, and OLED code into separate modules
-5. Run a clean QMK build from an environment where the CLI can invoke git/processes correctly
-6. Only after that, expand toward more layers or more complex animations
+#### Implemented
+- Encoder button tap toggles OLED legend vs last-key view.
+- Encoder button hold enters momentary `SELECT`.
+- GP12 is momentary `TEXT`.
+- Key 1 on each main layer is still `MO(_SELECT)`.
+- Encoder behavior is layer-dependent:
+  - `BASE` = volume up/down
+  - `WINDOW` = next/previous window
+  - `TEXT` = select left/right
+  - `RGB` = brightness up/down
+  - `DEV` = mouse wheel up/down
+  - `VSC` = next/previous editor tab group item
 
-## Working Assumptions
+#### Needs Testing
+- Verify selector entry and exit behavior on real hardware.
 
-- Treat the strip as individually addressable per-key hardware
-- Prefer explicit state machines over stacked QMK lighting presets
-- Keep behavior lightweight and non-blocking
-- Use actual QMK build results as the source of truth for compile status
-- Keep this file focused on current repo state plus the next intended direction
+### OLED
 
+#### Implemented
+- OLED default view shows a 3x3 legend table for the active layer.
+- OLED last-key view shows layer, key label, keycode, function, and matrix position.
+- OLED legend rendering changes on `VSC` depending on whether `BAR` or `CHAT` is active.
 
-## issues and improvements
+#### Needs Testing
+- Verify readability on the real display.
 
-- i want the display to show a table with wich keys have to be pushed to enter certain layer. 
+### RGB
 
-- rgb mode is stuck on "only active layerkey is lit
+#### Implemented
+- Reworked uses explicit per-key LED rendering through `rgblight_sethsv_at()`.
+- Layer visuals and selector visuals are timer-driven.
 
--enc btn press should toggle between a legend with keycodes on the active layer, and a "last pressed key" mode, that shows layername, keycode, function and coordinate in the matrix 
+#### Issues
+- LED order still needs physical verification on the real strip.
 
-- GPIO12 should be changed from selector to momentary TXT
+### VSC
 
-- Selector stays on the first matrix key. enc btn changes, and gpio12 changes
+#### Implemented
+- `DEV` is still present as a separate layer.
+- `VSC` was added as another selectable layer.
+- `BAR` mode sends command-palette commands from one editable string block in the keymap.
+- `CHAT` mode sends editable text macros from one editable string block in the keymap.
 
-## extended encoder actions
+#### Issues
+- The exact VS Code command palette names for some extension views may need adjustment depending on installed extensions.
 
-- standalone turning should behave different on certain layers.
+#### Suggestions
+- Keep the command strings and chat strings editable in one place.
 
-- on TXT it should select forward and backwards
+### Build
 
-- on RGB the brightness changes
+#### Issues
+- Real QMK build validation is still blocked by the local Windows/QMK CLI environment issue.
 
-- on BASE, Volume up and down
+#### Suggestions
+1. Test the `VSC` shortcuts on the real host setup.
+2. Replace the default chat macros with your real text.
+3. Verify the exact command palette names for GitHub Actions, GitHub, and Copilot Chat in the installed extension set.
+4. Verify and document the real LED strip order.
+5. Run a clean QMK build in a known-good environment.
 
-- on WINDOW the next or previous window should be selectet (not desktop)
+### Assumptions
 
+- Treat the strip as individually addressable per-key hardware.
+- Prefer explicit state machines over stacked QMK lighting presets.
+- Keep behavior lightweight and non-blocking.
+- Use actual QMK build results as the source of truth for compile status.
+- Keep this file focused on current repo state plus the next intended direction.
 
