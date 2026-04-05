@@ -45,6 +45,7 @@ The repo currently contains multiple parallel keymap implementations rather than
 - Adds timed SELECT cursor cycling at 500 ms
 - Allows encoder rotation while in SELECT mode
 - Adds a more developed OLED UI and custom select keycodes
+- Current layer set is `BASE`, `WINDOW`, `TEXT`, `RGB`, `VSC`, `SELECT`
 - This is now the chosen direction for future work
 - It still needs cleanup and real build validation
 
@@ -74,7 +75,7 @@ Some older assumptions in this file were too absolute and did not match the repo
 
 1. Choose one canonical layer model
   - Either keep the smaller practical set from VIA/simple
-  - Or adopt the reworked set: BASE, WINDOW, TEXT, RGB, SELECT
+  - Or adopt the reworked set: BASE, WINDOW, TEXT, RGB, VSC, SELECT
 
 2. Choose one selector interaction model
   - Recommended: selector button = enter/hold SELECT, encoder = navigate while in SELECT
@@ -134,28 +135,67 @@ Some older assumptions in this file were too absolute and did not match the repo
 - Keep this file focused on current repo state plus the next intended direction
 
 
-## issues and improvements
+## Current Reworked Behavior
 
-- i want the display to show a table with wich keys have to be pushed to enter certain layer. 
+- OLED default view shows a 3x3 legend table for the active layer
+- Encoder button tap toggles OLED legend vs last-key view
+- Encoder button hold enters momentary `SELECT`
+- GP12 is momentary `TEXT`
+- Key 1 on each main layer is still `MO(_SELECT)`
+- Encoder behavior is layer-dependent:
+  - `BASE` = volume up/down
+  - `WINDOW` = next/previous window
+  - `TEXT` = select left/right
+  - `RGB` = brightness up/down
+  - `VSC` = next/previous editor tab group item
 
-- rgb mode is stuck on "only active layerkey is lit
+## OLED Layout Notes
 
--enc btn press should toggle between a legend with keycodes on the active layer, and a "last pressed key" mode, that shows layername, keycode, function and coordinate in the matrix 
+TXT
+- `COPY` = copy
+- `CUT` = cut
+- `ALL` = select all
+- `PASTE` = paste
+- `POS1` = line start / home
 
-- GPIO12 should be changed from selector to momentary TXT
+WINDOW
+- `WIN<` / `WIN>` = previous/next window
+- `DESK<` / `DESK>` = previous/next desktop
 
-- Selector stays on the first matrix key. enc btn changes, and gpio12 changes
+## VSC Layer
 
-## extended encoder actions
+- `VSC` replaces the older `DEV` experiment idea
+- Current bindings are focused on general Visual Studio Code navigation
+- Current top rows:
+  - `EXPL` = Explorer
+  - `SRCH` = Search
+  - `GIT` = Source Control
+  - `RUN` = Run and Debug
+  - `EXT` = Extensions
+- Bottom row currently uses editor navigation shortcuts and can still be changed
 
-- standalone turning should behave different on certain layers.
+## Remaining TODO
 
-- on TXT it should select forward and backwards
+- Decide whether QUIET mode should stay at all
+- Test the `VSC` shortcuts on the real host setup
+- Decide whether the `VSC` layer should target specific tools like GitHub Actions or stay focused on general VS Code navigation
+- Add one or two customizable chat macros if they are still wanted
+- Verify LED order on hardware
+- Run a clean QMK build in a known-good environment
 
-- on RGB the brightness changes
+## VSC layer
 
-- on BASE, Volume up and down
+- I need a VSC layer. its called "VSC" 
 
-- on WINDOW the next or previous window should be selectet (not desktop)
+- included are ahortcuts like: Explorer, github actions, source, or simply move through actibvity bar should do it aswell. 
 
+- The first three matrix keys are modifiers (the selector stays untouched, BAR and CHAT)
+
+- impliment a Kombokey system on this particular layer, fit the oled output.
+
+- CHAT Kombos : there i want to place makros for messages and prompts, just take something that i can easily edit.
+
+- BAR kombos : starts in row 1 with
+explorer, source control, github actions, github and chatgpt. 
+leave the rest free if there is any space left.
 
