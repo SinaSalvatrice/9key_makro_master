@@ -29,6 +29,7 @@ enum layers {
     _WINDOW,
     _TEXT,
     _RGB,
+    _DEV,
     _SELECT,
     _LAYER_COUNT
 };
@@ -39,6 +40,7 @@ enum custom_keycodes {
     SEL_WINDOW,
     SEL_TEXT,
     SEL_RGB,
+    SEL_DEV,
     RGB_PROFILE
 };
 
@@ -94,7 +96,7 @@ static const select_slot_t select_slots[PAD_KEY_COUNT] = {
     { _TEXT,    96, 220, 110, "TXT",    true  },  // key 3
     { _RGB,    215, 240, 130, "RGB",    true  },  // key 4
     { _SELECT,   0,   0, 120, "SELECT", false },  // key 5 / style toggle
-    { _SELECT,   0,   0,  24, "FREE",   false },  // key 6
+    { _DEV,     18,  255, 130, "DEV",   true  },  // key 6
     { _SELECT,   0,   0,  24, "FREE",   false },  // key 7
     { _SELECT,   0,   0,  24, "FREE",   false },  // key 8
     { _SELECT,   0,   0,  24, "FREE",   false },  // key 9
@@ -107,23 +109,28 @@ static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
         "UNDO",  "DOWN", "REDO",
     },
     [_WINDOW] = {
-        "SEL",  "HOME", "NO",
-        "DESK<", "NO",  "DESK>",
-        "WIN<", "END", "WIN>",
+        "SEL",   "HOME",  "END",
+        "DESK<", "NO",    "DESK>",
+        "WIN<",  "NO",    "WIN>",
     },
     [_TEXT] = {
-        "SEL",   "ALL",   "COPY",
-        "CUT",   "PASTE", "RGHT",
-        "POS1",  "SPC",   "END",
+        "SEL",   "POS1",  "END",
+        "ALL",   "COPY",  "PASTE",
+        "CUT",   "SPC",   "PENT",
     },
     [_RGB] = {
         "SEL",  "SPD-", "TOG",
         "HUE+", "HUE-", "VAL+",
         "SAT+", "SAT-", "VAL-",
     },
+    [_DEV] = {
+        "SEL",   "CTRL",  "SHIFT",
+        "ALT",   "GUI",   "BTN1",
+        "M<-",   "M^",    "M->",
+    },
     [_SELECT] = {
         "BASE", "WIN",  "TXT",
-        "RGB",  "FX",   "FREE",
+        "RGB",  "FX",   "DEV",
         "FREE", "FREE", "FREE",
     },
 };
@@ -135,23 +142,28 @@ static const char *const layer_function[_LAYER_COUNT][PAD_KEY_COUNT] = {
         "Undo",           "Arrow down",     "Redo",
     },
     [_WINDOW] = {
-        "Select layer",   "Jump home",      "Unused",
+        "Select layer",   "Jump home",      "Jump end",
         "Prev desktop",   "Unused",         "Next desktop",
-        "Prev task",      "Jump end",       "Next task",
+        "Prev window",    "Unused",         "Next window",
     },
     [_TEXT] = {
-        "Select layer",   "Select all",     "Copy",
-        "Cut",            "Paste",          "Cursor right",
-        "Line start",     "Space",          "Backspace",
+        "Select layer",   "Line start",     "Line end",
+        "Select all",     "Copy",           "Paste",
+        "Cut",            "Space",          "Keypad enter",
     },
     [_RGB] = {
         "Select layer",   "Speed down",     "Toggle RGB",
         "Hue up",         "Hue down",       "Brightness up",
         "Saturation up",  "Saturation down", "Brightness down",
     },
+    [_DEV] = {
+        "Select layer",   "Hold Ctrl",      "Hold Shift",
+        "Hold Alt",       "Hold GUI",       "Mouse button 1",
+        "Mouse left",     "Mouse up",       "Mouse right",
+    },
     [_SELECT] = {
         "Go to base",     "Go to window",   "Go to text",
-        "Go to RGB",      "Toggle FX mode", "Unused",
+        "Go to RGB",      "Toggle FX mode", "Go to DEV",
         "Unused",         "Unused",         "Unused",
     },
 };
@@ -162,6 +174,7 @@ static const char *layer_name_short(uint8_t l) {
         case _WINDOW: return "WIN";
         case _TEXT:   return "TXT";
         case _RGB:    return "RGB";
+        case _DEV:    return "DEV";
         case _SELECT: return "SEL";
         default:      return "BASE";
     }
@@ -173,6 +186,7 @@ static const char *layer_name_long(uint8_t l) {
         case _WINDOW: return "WINDOW";
         case _TEXT:   return "TXT";
         case _RGB:    return "RGB";
+        case _DEV:    return "DEV";
         case _SELECT: return "SELECT";
         default:      return "BASE";
     }
@@ -325,6 +339,17 @@ static void render_rgb_wild(void) {
     }
 }
 
+static void render_dev_wild(void) {
+    uint32_t now = timer_read32();
+    for (uint8_t i = 0; i < PAD_KEY_COUNT; i++) {
+        uint8_t swing = triwave8_period(now, 2200, i * 23);
+        uint8_t hue   = lerp8(10, 40, swing);
+        uint8_t sat   = (i >= 6) ? 255 : 220;
+        uint8_t val   = pulse_val(now, 900 + (i * 40), i * 17, 18, 150);
+        set_key_hsv(i, hue, sat, val);
+    }
+}
+
 static void render_select_wild(void) {
     uint32_t now = timer_read32();
     for (uint8_t i = 0; i < PAD_KEY_COUNT; i++) {
@@ -372,6 +397,9 @@ static void render_rgb_layer_visuals(void) {
         case _RGB:
             render_rgb_wild();
             break;
+        case _DEV:
+            render_dev_wild();
+            break;
         case _SELECT:
             render_select_wild();
             break;
@@ -391,15 +419,15 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 
     [_WINDOW] = LAYOUT(
-        MO(_SELECT),         KC_HOME,            KC_NO,
+        MO(_SELECT),         KC_HOME,            KC_END,
         LGUI(LCTL(KC_LEFT)), KC_NO,              LGUI(LCTL(KC_RGHT)),
-        LSA(LALT(KC_TAB)),   KC_END,             LALT(KC_TAB)
+        LSA(LALT(KC_TAB)),   KC_NO,             LALT(KC_TAB)
     ),
 
     [_TEXT] = LAYOUT(
-        MO(_SELECT), LCTL(KC_A), LCTL(KC_C),
-        LCTL(KC_X),  LCTL(KC_V), KC_RGHT,
-        KC_HOME,     KC_SPC,     KC_END
+        MO(_SELECT),         KC_HOME,            KC_END,
+        LCTL(KC_A),          LCTL(KC_C),         LCTL(KC_V),
+        LCTL(KC_X),          KC_SPC,             KC_PENT
     ),
 
     [_RGB] = LAYOUT(
@@ -408,10 +436,16 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         UG_SATU,     UG_SATD, UG_VALD
     ),
 
+    [_DEV] = LAYOUT(
+        MO(_SELECT), KC_LCTL,  KC_LSFT,
+        KC_LALT,     KC_LGUI,  MS_BTN1,
+        MS_LEFT,     MS_UP,    MS_RGHT
+    ),
+
     // 1..9 = physical key numbering left to right
     [_SELECT] = LAYOUT(
         SEL_BASE,   SEL_WINDOW, SEL_TEXT,
-        SEL_RGB,    RGB_PROFILE, KC_NO,
+        SEL_RGB,    RGB_PROFILE, SEL_DEV,
         KC_NO,      KC_NO,      KC_NO
     ),
 };
@@ -485,6 +519,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 select_target_layer(_RGB);
             }
             return false;
+        case SEL_DEV:
+            if (record->event.pressed) {
+                select_target_layer(_DEV);
+            }
+            return false;
         case RGB_PROFILE:
             if (record->event.pressed) {
                 rgb_minimal_mode = !rgb_minimal_mode;
@@ -518,6 +557,9 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
             break;
         case _RGB:
             tap_code16(clockwise ? UG_VALU : UG_VALD);
+            break;
+        case _DEV:
+            tap_code(clockwise ? MS_WHLU : MS_WHLD);
             break;
         case _SELECT:
             select_cursor = next_select_slot(select_cursor, clockwise);
@@ -630,6 +672,9 @@ static bool get_basic_key_label(uint16_t kc, char *buf, uint8_t buflen) {
         case KC_END:
             snprintf(buf, buflen, "END");
             return true;
+        case KC_PENT:
+            snprintf(buf, buflen, "PENT");
+            return true;
         case KC_PGUP:
             snprintf(buf, buflen, "PGUP");
             return true;
@@ -641,6 +686,36 @@ static bool get_basic_key_label(uint16_t kc, char *buf, uint8_t buflen) {
             return true;
         case KC_VOLD:
             snprintf(buf, buflen, "VOL-");
+            return true;
+        case KC_LCTL:
+            snprintf(buf, buflen, "CTRL");
+            return true;
+        case KC_LSFT:
+            snprintf(buf, buflen, "SHIFT");
+            return true;
+        case KC_LALT:
+            snprintf(buf, buflen, "ALT");
+            return true;
+        case KC_LGUI:
+            snprintf(buf, buflen, "GUI");
+            return true;
+        case MS_BTN1:
+            snprintf(buf, buflen, "BTN1");
+            return true;
+        case MS_LEFT:
+            snprintf(buf, buflen, "M<-");
+            return true;
+        case MS_UP:
+            snprintf(buf, buflen, "MUP");
+            return true;
+        case MS_RGHT:
+            snprintf(buf, buflen, "M->");
+            return true;
+        case MS_WHLU:
+            snprintf(buf, buflen, "WHL+");
+            return true;
+        case MS_WHLD:
+            snprintf(buf, buflen, "WHL-");
             return true;
     }
 
