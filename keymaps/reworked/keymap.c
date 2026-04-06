@@ -313,7 +313,7 @@ static uint8_t active_layer_raw(void) {
 }
 
 static void update_select_layer_state(void) {
-    if (matrix_select_held) {
+    if (matrix_select_held || gp12_select_held) {
         layer_on(_SELECT);
     } else {
         layer_off(_SELECT);
@@ -356,7 +356,7 @@ static const char *function_label_for(uint8_t layer, uint8_t row, uint8_t col) {
         return "Unknown";
     }
     if (layer == _VSC) {
-        return vsc_function_for(last_vsc_mode, index);
+        return vsc_function_for(current_vsc_preview_mode(), index);
     }
     return layer_function[layer][index];
 }
@@ -377,11 +377,12 @@ static void trigger_vsc_target(uint8_t slot) {
         return;
     }
 
-    last_vsc_mode = vsc_mode;
+    vsc_mode_t mode = current_vsc_preview_mode();
+    last_vsc_mode = mode;
 
-    if (vsc_mode == VSC_MODE_BAR) {
+    if (mode == VSC_MODE_BAR) {
         send_vsc_command(vsc_bar_commands[slot]);
-    } else if (vsc_mode == VSC_MODE_CHAT) {
+    } else if (mode == VSC_MODE_CHAT) {
         send_string(vsc_chat_macros[slot]);
     }
 }
@@ -662,7 +663,7 @@ layer_state_t layer_state_set_user(layer_state_t state) {
             base = _BASE;
         }
         select_return_layer = base;
-        select_cursor       = slot_for_layer(_BASE);
+        select_cursor       = slot_for_layer(base);
     }
 
     last_state = state;
@@ -735,10 +736,20 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             }
             return false;
         case VSC_BAR:
-            vsc_mode = record->event.pressed ? VSC_MODE_BAR : VSC_MODE_NONE;
+            if (record->event.pressed) {
+                vsc_mode = VSC_MODE_BAR;
+                last_vsc_mode = VSC_MODE_BAR;
+            } else {
+                vsc_mode = VSC_MODE_NONE;
+            }
             return false;
         case VSC_CHAT:
-            vsc_mode = record->event.pressed ? VSC_MODE_CHAT : VSC_MODE_NONE;
+            if (record->event.pressed) {
+                vsc_mode = VSC_MODE_CHAT;
+                last_vsc_mode = VSC_MODE_CHAT;
+            } else {
+                vsc_mode = VSC_MODE_NONE;
+            }
             return false;
         case VSC_1:
         case VSC_2:
@@ -1017,7 +1028,11 @@ static void render_legend_view(uint8_t layer) {
                  (current_vsc_preview_mode() == VSC_MODE_CHAT) ? "CHAT" : "BAR",
                  (vsc_mode != VSC_MODE_NONE) ? " [HELD]" : "");
     } else {
+#ifdef SELECTOR_BTN_PIN
         snprintf(line, sizeof(line), "GP12: Lay <-> Last");
+#else
+        snprintf(line, sizeof(line), "Hold SEL for grid");
+#endif
     }
     write_line(7, line);
 }
@@ -1040,7 +1055,11 @@ static void render_last_key_view(void) {
     snprintf(buf, sizeof(buf), "Pos:   %u (%u,%u)",
              (last_row * 3) + last_col + 1, last_row, last_col);
     write_line(6, buf);
+#ifdef SELECTOR_BTN_PIN
     write_line(7, "GP12: back to Lay");
+#else
+    write_line(7, "Last-key details");
+#endif
 }
 
 bool oled_task_user(void) {
@@ -1049,10 +1068,14 @@ bool oled_task_user(void) {
         return false;
     }
 
-    if (oled_view == OLED_VIEW_LAST_KEY) {
+    uint8_t layer = active_layer_raw();
+
+    if (layer == _SELECT) {
+        render_legend_view(_SELECT);
+    } else if (oled_view == OLED_VIEW_LAST_KEY) {
         render_last_key_view();
     } else {
-        render_legend_view(active_layer_raw());
+        render_legend_view(layer);
     }
 
     return false;
