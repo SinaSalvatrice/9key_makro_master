@@ -183,9 +183,9 @@ static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
         "SAT+", "SAT-", "VAL-",
     },
     [_DEV] = {
-        "SEL",   "CTRL",  "SHIFT",
-        "ALT",   "GUI",   "BTN1",
-        "M<-",   "M^",    "M->",
+        "SEL",   "M^",    "SHFT",
+        "M<-",   "BTN1",  "M->",
+        "ALT",   "Mv",    "BTN2",
     },
     [_VSC] = {
         "SEL",   "BAR",   "CHAT",
@@ -226,9 +226,9 @@ static const char *const layer_function[_LAYER_COUNT][PAD_KEY_COUNT] = {
         "Saturation up",  "Saturation down", "Brightness down",
     },
     [_DEV] = {
-        "Select layer",   "Hold Ctrl",      "Hold Shift",
-        "Hold Alt",       "Hold GUI",       "Mouse button 1",
-        "Mouse left",     "Mouse up",       "Mouse right",
+        "Select layer",   "Mouse up",       "Hold Shift",
+        "Mouse left",     "Mouse button 1", "Mouse right",
+        "Hold Alt",       "Mouse down",     "Mouse button 2",
     },
     [_VSC] = {
         "Select layer",   "BAR mode",       "CHAT mode",
