@@ -83,11 +83,9 @@ SELECT :  Little faster breathing, more like blinking once, once, Little break, 
 
 OLED
 
-Oled is integrated. while layer selector, it Shows a Little 3x3 table with the Name of the layer on its Position. beneath it, is the Matrix coordinate written.
+OLED is integrated. During selector mode it now shows compact selector status instead of a 3x3 label grid.
 
-
-
-in General the Display Shows the active layer as head. beneath it, it Shows the pushed button, in braces the kecode, and beneath the coordinate. 
+In general the display shows the active layer plus the most recent key/code and position information.
 
 
 

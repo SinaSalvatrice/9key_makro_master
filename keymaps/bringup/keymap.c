@@ -13,7 +13,7 @@ enum layers {
 };
 
 
-// Short label (max 6 chars) for the legend grid
+// Short label (max 6 chars) for OLED status
 static const char *layer_name_short(uint8_t l) {
     switch (l) {
         case _BASE:   return "BASE";
@@ -29,7 +29,6 @@ static const char *layer_name_short(uint8_t l) {
 static uint16_t last_keycode = KC_NO;
 static uint8_t  last_row     = 0;
 static uint8_t  last_col     = 0;
-static bool     legend_active = false;
 
 static uint8_t active_layer(void) {
     return get_highest_layer(layer_state | default_layer_state);
@@ -154,7 +153,7 @@ void matrix_scan_user(void) {
     }
     enc_was_pressed = enc_pressed;
 
-    // Selector button: hold = momentary _TEXT; quick tap = toggle OLED legend.
+    // Selector button: hold = momentary _TEXT.
     static bool     sel_was_pressed  = false;
     static uint8_t  sel_prev_layer   = _BASE;
     static uint32_t sel_press_time   = 0;
@@ -165,10 +164,7 @@ void matrix_scan_user(void) {
         sel_press_time = timer_read32();
         layer_move(_TEXT);
     } else if (!sel_pressed && sel_was_pressed) {
-        if (timer_elapsed32(sel_press_time) < 200) {
-            // Quick tap: toggle legend, stay on current layer
-            legend_active = !legend_active;
-        }
+        (void)sel_press_time;
         layer_move(sel_prev_layer);
     }
     sel_was_pressed = sel_pressed;
@@ -280,25 +276,6 @@ static void render_keyinfo(void) {
     write_line(7, "");
 }
 
-// ── Legend view: 3×3 key grid (rows 1–7) ────────────────────
-static void render_legend(uint8_t layer) {
-    char line[22];
-    write_line(1, "---------------------");
-
-    for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
-        char l0[8], l1[8], l2[8];
-        get_key_label(keymaps[layer][r][0], l0, sizeof(l0));
-        get_key_label(keymaps[layer][r][1], l1, sizeof(l1));
-        get_key_label(keymaps[layer][r][2], l2, sizeof(l2));
-        snprintf(line, sizeof(line), "%-7s%-7s%-7s", l0, l1, l2);
-        write_line(2 + r, line);
-    }
-
-    write_line(5, "  [Enc btn]=toggle");
-    write_line(6, "");
-    write_line(7, "");
-}
-
 // ── Main OLED task ──────────────────────────────────────────
 bool oled_task_user(void) {
     if (boot_start == 0 || timer_elapsed32(boot_start) < BOOT_TOTAL_MS) {
@@ -308,12 +285,7 @@ bool oled_task_user(void) {
 
     uint8_t cur = active_layer();
     render_header(cur);
-
-    if (legend_active) {
-        render_legend(cur);
-    } else {
-        render_keyinfo();
-    }
+    render_keyinfo();
 
     return false;
 }
