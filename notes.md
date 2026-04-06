@@ -19,13 +19,13 @@
 - OLED display on I2C, configured as SSD1306
 - Rotary encoder on GP9/GP10
 - Encoder push button on GP8
-- Separate selector button on GP12
+- Selector currently uses the first matrix key; the old GP12 selector path is optional only
 
 ### Layers
 
 #### Ideas
 - Long-term target is one useful layer per physical key slot in the selector grid.
-- Current named layers are `BASE`, `WINDOW`, `TEXT`, `RGB`, `DEV`, `VSC`, `SELECT`.
+- Current named layers are `BASE`, `WINDOW`, `TEXT`, `MEDIA`, `DEV`, `VSC`, `RGB`, `SELECT`.
 - `DEV` should stay available for later experiments.
 - `VSC` should stay focused on VS Code workflows.
 
@@ -83,65 +83,68 @@ Current `CHAT` targets:
 ### Repository
 
 #### Status
-- The repo currently contains multiple parallel keymap implementations rather than one settled design.
+- The repo still contains several parallel keymap experiments, but `keymaps/reworked` is the active implementation target.
+- `simple`, `via`, and `bringup` are still useful references, but they are not the current source of truth for behavior.
+- Some older keymaps still assume a dedicated `SELECTOR_BTN_PIN` path and would need syncing if they are revived.
 
 #### Simple
-- Uses a dedicated selector button on GP12 to hold the SELECT layer.
-- Has a compact layer set: `BASE`, `L1`, `L2`, `SELECT`.
+- Still uses a dedicated selector-button flow and a compact `BASE`, `L1`, `L2`, `SELECT` layer set.
 - RGB is still global layer feedback through RGBLIGHT presets.
 - OLED already shows layer, last keycode, and key position.
 
 #### VIA
-- Expands the layer model to `BASE`, `NAV`, `EDIT`, `MEDIA`, `FN`, `RGB`, `SELECT`.
-- Keeps the separate selector button and uses the encoder button mainly for wake behavior.
-
-#### Issues
-- VIA contains at least one obvious code issue: `refresh_feedback()` references `selector_target`, which is not defined.
+- Uses the larger `BASE`, `NAV`, `EDIT`, `MEDIA`, `FN`, `RGB`, `SELECT` model.
+- Still assumes the older dedicated selector-button behavior.
+- `refresh_feedback()` still references `selector_target`, which is not defined.
 
 ### Layers
 
 #### Implemented
-- Reworked is the active implementation target.
-- Reworked uses the layer set `BASE`, `WINDOW`, `TEXT`, `RGB`, `DEV`, `VSC`, `SELECT`.
+- Reworked uses the layer set `BASE`, `WINDOW`, `TEXT`, `MEDIA`, `DEV`, `VSC`, `RGB`, `SELECT`.
 - Selector slots and custom select keycodes are implemented.
+- The selector entry key is the first matrix key (`MO(_SELECT)` at row `0`, col `0`), with `SELECTOR_MATRIX_ROW/COL` defined in `config.h`.
+- Entering `SELECT` now keeps the cursor aligned with the currently active layer slot instead of always resetting to `BASE`.
 
 #### Issues
-- No single source of truth for shared layer logic outside the keymap yet.
-- Shared logic has not been extracted into modules yet.
+- No single shared module exists yet for the common selector/OLED/RGB logic.
+- The real VS Code host setup may still need command-name adjustments for some `VSC` targets.
 
 ### Input And Navigation
 
 #### Implemented
-- Encoder button tap toggles OLED legend vs last-key view.
-- Encoder button hold enters momentary `SELECT`.
-- GP12 is momentary `TEXT`.
 - Key 1 on each main layer is still `MO(_SELECT)`.
+- Current config uses the first matrix key as the selector; `SELECTOR_BTN_PIN` is optional and is not defined in the current `config.h`.
+- If the optional GP12 path is re-enabled, tap toggles OLED legend vs last-key view and hold enters `SELECT`.
 - Encoder behavior is layer-dependent:
-  - `BASE` = volume up/down
-  - `WINDOW` = next/previous window
-  - `TEXT` = select left/right
+  - `BASE` = mouse wheel up/down
+  - `WINDOW` = Alt+Tab next/previous
+  - `TEXT` = left/right
+  - `MEDIA` = volume up/down
   - `RGB` = brightness up/down
   - `DEV` = mouse wheel up/down
-  - `VSC` = next/previous editor tab group item
+  - `VSC` = Ctrl+PgDn / Ctrl+PgUp
 
 #### Needs Testing
 - Verify selector entry and exit behavior on real hardware.
+- Confirm the fallback `R0C0 + R2C2 -> BASE` combo still feels useful.
 
 ### OLED
 
 #### Implemented
 - OLED default view shows a 3x3 legend table for the active layer.
 - OLED last-key view shows layer, key label, keycode, function, and matrix position.
-- OLED legend rendering changes on `VSC` depending on whether `BAR` or `CHAT` is active.
+- OLED legend rendering changes on `VSC` depending on whether `BAR` or `CHAT` is the current preview mode.
+- While `SELECT` is active, the OLED now forces the selector legend/grid instead of showing the RGB or last-key view.
 
 #### Needs Testing
-- Verify readability on the real display.
+- Confirm readability and spacing on the real display.
 
 ### RGB
 
 #### Implemented
 - Reworked uses explicit per-key LED rendering through `rgblight_sethsv_at()`.
 - Layer visuals and selector visuals are timer-driven.
+- The center selector slot doubles as the FX toggle (`RGB_PROFILE`) in the selector grid.
 
 #### Issues
 - LED order still needs physical verification on the real strip.
@@ -149,13 +152,15 @@ Current `CHAT` targets:
 ### VSC
 
 #### Implemented
-- `DEV` is still present as a separate layer.
-- `VSC` was added as another selectable layer.
-- `BAR` mode sends command-palette commands from one editable string block in the keymap.
-- `CHAT` mode sends editable text macros from one editable string block in the keymap.
+- `DEV` remains a separate layer; `VSC` is an additional selectable layer.
+- Top row is `SEL`, `BAR`, `CHAT`.
+- The lower six keys (`VSC_1`…`VSC_6`) trigger shared targets using the current or last selected `BAR`/`CHAT` mode.
+- `BAR` mode sends command-palette strings from one editable block in the keymap.
+- `CHAT` mode sends editable text macros from one editable block in the keymap.
 
 #### Issues
-- The exact VS Code command palette names for some extension views may need adjustment depending on installed extensions.
+- The exact VS Code command palette names for some extension views may still need adjustment on the real host.
+- The default chat macro text is still placeholder content and should be personalized.
 
 #### Suggestions
 - Keep the command strings and chat strings editable in one place.
@@ -163,11 +168,11 @@ Current `CHAT` targets:
 ### Build
 
 #### Issues
-- Real QMK build validation is still blocked by the local Windows/QMK CLI environment issue.
+- Real QMK build validation is still blocked locally by the Windows/QMK CLI environment issue (`WinError 2` / `build_keyboard.mk:240: missing separator`).
 
 #### Suggestions
 1. Test the `VSC` shortcuts on the real host setup.
-2. Replace the default chat macros with your real text.
+2. Replace the default chat macros with your real prompt text.
 3. Verify the exact command palette names for GitHub Actions, GitHub, and Copilot Chat in the installed extension set.
 4. Verify and document the real LED strip order.
 5. Run a clean QMK build in a known-good environment.

@@ -76,13 +76,13 @@ typedef enum {
 } oled_view_t;
 
 // ── OLED / state tracking ───────────────────────────────────
-static uint16_t last_keycode    = KC_NO;
-static uint8_t  last_key_layer  = _BASE;
-static uint8_t  last_row        = 0;
-static uint8_t  last_col        = 0;
-static uint8_t  select_return_layer = _BASE;
-static uint8_t  select_cursor       = 0;
-static uint32_t rgb_frame_timer     = 0;
+static uint16_t last_keycode       = KC_NO;
+static uint8_t  last_key_layer     = _BASE;
+static uint8_t  last_row           = 0;
+static uint8_t  last_col           = 0;
+static uint8_t  selector_target    = _BASE;
+static uint8_t  select_cursor      = 0;
+static uint32_t rgb_frame_timer    = 0;
 static uint32_t boot_start          = 0;
 static oled_view_t oled_view        = OLED_VIEW_LEGEND;
 static vsc_mode_t vsc_mode          = VSC_MODE_NONE;
@@ -329,6 +329,12 @@ static uint8_t slot_for_layer(uint8_t layer) {
     return 0;
 }
 
+static void sync_selector_target_from_cursor(void) {
+    if (select_cursor < PAD_KEY_COUNT && select_slots[select_cursor].selectable) {
+        selector_target = select_slots[select_cursor].layer;
+    }
+}
+
 static uint8_t next_select_slot(uint8_t idx, bool clockwise) {
     for (uint8_t step = 0; step < PAD_KEY_COUNT; step++) {
         idx = clockwise ? ((idx + 1) % PAD_KEY_COUNT) : ((idx + PAD_KEY_COUNT - 1) % PAD_KEY_COUNT);
@@ -423,9 +429,10 @@ static void render_minimal_profile(uint8_t layer) {
     clear_all_keys();
 
     if (layer == _SELECT) {
-        const select_slot_t *slot = &select_slots[select_cursor];
+        uint8_t target_slot = slot_for_layer(selector_target);
+        const select_slot_t *slot = &select_slots[target_slot];
         uint8_t val = pulse_val(timer_read32(), 2200, 0, 14, 96);
-        set_key_hsv(select_cursor, slot->hue, slot->sat, val);
+        set_key_hsv(target_slot, slot->hue, slot->sat, val);
         return;
     }
 
@@ -529,6 +536,8 @@ static void render_vsc_wild(void) {
 
 static void render_select_wild(void) {
     uint32_t now = timer_read32();
+    uint8_t target_slot = slot_for_layer(selector_target);
+
     for (uint8_t i = 0; i < PAD_KEY_COUNT; i++) {
         const select_slot_t *slot = &select_slots[i];
         uint8_t val = slot->selectable ? 34 : 10;
@@ -538,6 +547,12 @@ static void render_select_wild(void) {
         if (i == 4) {  // center key = neutral SELECT/style slot
             sat = 0;
             val = 24;
+        }
+
+        if (i == target_slot && i != select_cursor && slot->selectable) {
+            if (val < 72) {
+                val = 72;
+            }
         }
 
         if (i == select_cursor) {
@@ -662,8 +677,8 @@ layer_state_t layer_state_set_user(layer_state_t state) {
         if (base >= _SELECT) {
             base = _BASE;
         }
-        select_return_layer = base;
-        select_cursor       = slot_for_layer(base);
+        selector_target = base;
+        select_cursor   = slot_for_layer(selector_target);
     }
 
     last_state = state;
@@ -671,8 +686,9 @@ layer_state_t layer_state_set_user(layer_state_t state) {
 }
 
 static void select_target_layer(uint8_t layer) {
-    select_return_layer = layer;
-    layer_move(layer);
+    selector_target = layer;
+    select_cursor   = slot_for_layer(selector_target);
+    layer_move(selector_target);
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
@@ -681,6 +697,8 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     }
     if (record->event.key.row == 2 && record->event.key.col == 2) {
         if (record->event.pressed && r0c0_held) {
+            selector_target = _BASE;
+            select_cursor   = slot_for_layer(selector_target);
             layer_move(_BASE);
             return false;
         }
@@ -803,6 +821,7 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
             break;
         case _SELECT:
             select_cursor = next_select_slot(select_cursor, clockwise);
+            sync_selector_target_from_cursor();
             break;
         default:
             tap_code(clockwise ? KC_VOLU : KC_VOLD);
@@ -875,9 +894,10 @@ void keyboard_post_init_user(void) {
     gpio_set_pin_input_high(SELECTOR_BTN_PIN);
 #endif
 
-    boot_start         = timer_read32() | 1;
-    select_cursor      = slot_for_layer(_BASE);
-    rgb_frame_timer    = timer_read32();
+    boot_start      = timer_read32() | 1;
+    selector_target = _BASE;
+    select_cursor   = slot_for_layer(selector_target);
+    rgb_frame_timer = timer_read32();
 }
 
 #ifdef OLED_ENABLE
@@ -1022,7 +1042,7 @@ static void render_legend_view(uint8_t layer) {
     write_line(6, line);
 
     if (layer == _SELECT) {
-        snprintf(line, sizeof(line), "Cursor %u -> %.10s", select_cursor + 1, select_slots[select_cursor].name);
+        snprintf(line, sizeof(line), "Cur%u Tgt->%.10s", select_cursor + 1, layer_name_long(selector_target));
     } else if (layer == _VSC) {
         snprintf(line, sizeof(line), "%s mode%s",
                  (current_vsc_preview_mode() == VSC_MODE_CHAT) ? "CHAT" : "BAR",
