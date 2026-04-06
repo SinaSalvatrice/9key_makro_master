@@ -84,6 +84,14 @@ static oled_view_t oled_view        = OLED_VIEW_LEGEND;
 static vsc_mode_t vsc_mode          = VSC_MODE_NONE;
 static vsc_mode_t last_vsc_mode     = VSC_MODE_BAR;
 
+// ── Sign picker for TXT encoder ─────────────────────────────
+static const char sign_chars[] = "!@#$%^&*()-_=+[]{}|\\;:'\",.<>/?~`";
+#define SIGN_COUNT  (sizeof(sign_chars) - 1)
+static int8_t  sign_index       = -1;
+static bool    sign_picking     = false;
+static uint32_t sign_last_turn  = 0;
+#define SIGN_TIMEOUT_MS  1500
+
 // ── Key -> LED mapping ──────────────────────────────────────
 // Physical key numbering for OLED is row-major / left-to-right:
 //
@@ -257,7 +265,8 @@ static const char *layer_name_long(uint8_t l) {
 }
 
 static vsc_mode_t current_vsc_preview_mode(void) {
-    return (vsc_mode == VSC_MODE_CHAT) ? VSC_MODE_CHAT : VSC_MODE_BAR;
+    if (vsc_mode != VSC_MODE_NONE) return vsc_mode;
+    return last_vsc_mode;
 }
 
 static const char *vsc_label_for(vsc_mode_t mode, uint8_t index) {
@@ -561,8 +570,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     [_WINDOW] = LAYOUT(
         MO(_SELECT),         KC_HOME,            KC_END,
-        LGUI(LCTL(KC_LEFT)), KC_NO,              LGUI(LCTL(KC_RGHT)),
-        LSA(LALT(KC_TAB)),   KC_NO,              LALT(KC_TAB)
+        LGUI(LCTL(KC_LEFT)), LGUI(KC_D),              LGUI(LCTL(KC_RGHT)),
+        LSA(LALT(KC_TAB)),   LCTL(KC_TAB),       LALT(KC_TAB)
     ),
 
     [_TEXT] = LAYOUT(
@@ -709,7 +718,7 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 
     switch (active_layer_raw()) {
         case _BASE:
-            tap_code(clockwise ? KC_VOLU : KC_VOLD);
+            tap_code(clockwise ? MS_WHLU : MS_WHLD);
             break;
         case _WINDOW:
             if (clockwise) {
@@ -718,11 +727,23 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
                 tap_code16(LSA(LALT(KC_TAB)));
             }
             break;
-        case _TEXT:
-            register_code(KC_LSFT);
-            tap_code(clockwise ? KC_RGHT : KC_LEFT);
-            unregister_code(KC_LSFT);
+        case _TEXT: {
+            uint32_t now = timer_read32();
+            if (!sign_picking || timer_elapsed32(sign_last_turn) > SIGN_TIMEOUT_MS) {
+                sign_index = clockwise ? 0 : (int8_t)(SIGN_COUNT - 1);
+                sign_picking = true;
+            } else {
+                tap_code(KC_BSPC);
+                if (clockwise) {
+                    sign_index = (sign_index + 1) % (int8_t)SIGN_COUNT;
+                } else {
+                    sign_index = (sign_index - 1 + (int8_t)SIGN_COUNT) % (int8_t)SIGN_COUNT;
+                }
+            }
+            send_char(sign_chars[sign_index]);
+            sign_last_turn = now;
             break;
+        }
         case _RGB:
             tap_code16(clockwise ? UG_VALU : UG_VALD);
             break;
@@ -943,7 +964,9 @@ static void render_legend_view(uint8_t layer) {
     if (layer == _SELECT) {
         snprintf(line, sizeof(line), "Cursor %u -> %.10s", select_cursor + 1, select_slots[select_cursor].name);
     } else if (layer == _VSC) {
-        snprintf(line, sizeof(line), "%s mode", (vsc_mode == VSC_MODE_CHAT) ? "CHAT" : "BAR");
+        snprintf(line, sizeof(line), "%s mode%s",
+                 (current_vsc_preview_mode() == VSC_MODE_CHAT) ? "CHAT" : "BAR",
+                 (vsc_mode != VSC_MODE_NONE) ? " [HELD]" : "");
     } else {
         snprintf(line, sizeof(line), "BTN view  GP12 TXT");
     }
