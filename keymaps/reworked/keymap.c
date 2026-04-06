@@ -675,7 +675,7 @@ static void select_target_layer(uint8_t layer) {
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-    if (record->event.key.row == 0 && record->event.key.col == 0) {
+    if (record->event.key.row == SELECTOR_MATRIX_ROW && record->event.key.col == SELECTOR_MATRIX_COL) {
         r0c0_held = record->event.pressed;
     }
     if (record->event.key.row == 2 && record->event.key.col == 2) {
@@ -881,7 +881,7 @@ static void write_line(uint8_t row, const char *str) {
     oled_write(buf, false);
 }
 
-static bool get_basic_key_label(uint16_t kc, char *buf, uint8_t buflen) {
+static bool __attribute__((unused)) get_basic_key_label(uint16_t kc, char *buf, uint8_t buflen) {
     switch (kc) {
         case KC_NO:
             snprintf(buf, buflen, "NO");
