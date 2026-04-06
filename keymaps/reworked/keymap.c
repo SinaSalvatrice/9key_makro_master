@@ -813,7 +813,8 @@ void matrix_scan_user(void) {
     }
     enc_was_pressed = enc_pressed;
 
-    // GP12 selector button: tap toggles OLED view, hold enters SELECT while held
+#ifdef SELECTOR_BTN_PIN
+    // Optional dedicated selector button: tap toggles OLED view, hold enters SELECT while held
     static bool gp12_was_pressed = false;
     static uint32_t gp12_press_timer = 0;
     static uint32_t gp12_last_action = 0;
@@ -838,6 +839,7 @@ void matrix_scan_user(void) {
         gp12_last_action = timer_read32();
     }
     gp12_was_pressed = gp12_pressed;
+#endif
 
 #ifdef RGBLIGHT_ENABLE
     if (timer_elapsed32(rgb_frame_timer) >= RGB_FRAME_MS) {
@@ -858,9 +860,11 @@ void keyboard_post_init_user(void) {
     gpio_write_pin_high(GP25);
 
     gpio_set_pin_input_high(ENCODER_BTN_PIN);
+#ifdef SELECTOR_BTN_PIN
     gpio_set_pin_input_high(SELECTOR_BTN_PIN);
+#endif
 
-    boot_start          = timer_read32() | 1;
+    boot_start         = timer_read32() | 1;
     select_cursor      = slot_for_layer(_BASE);
     rgb_frame_timer    = timer_read32();
 }
