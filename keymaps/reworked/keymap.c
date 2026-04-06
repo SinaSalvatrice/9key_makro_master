@@ -813,11 +813,11 @@ void matrix_scan_user(void) {
     }
     enc_was_pressed = enc_pressed;
 
-    // GP12: tap toggles LL/LK, hold enters SELECT while held
+    // GP12 selector button: tap toggles OLED view, hold enters SELECT while held
     static bool gp12_was_pressed = false;
     static uint32_t gp12_press_timer = 0;
     static uint32_t gp12_last_action = 0;
-    bool        gp12_pressed     = (gpio_read_pin(LL_LK_BTN_PIN) == 0);
+    bool        gp12_pressed     = (gpio_read_pin(SELECTOR_BTN_PIN) == 0);
 
     if (gp12_pressed && !gp12_was_pressed && timer_elapsed32(gp12_last_action) > BUTTON_DEBOUNCE_MS) {
         gp12_press_timer = timer_read32();
@@ -858,7 +858,7 @@ void keyboard_post_init_user(void) {
     gpio_write_pin_high(GP25);
 
     gpio_set_pin_input_high(ENCODER_BTN_PIN);
-    gpio_set_pin_input_high(LL_LK_BTN_PIN);
+    gpio_set_pin_input_high(SELECTOR_BTN_PIN);
 
     boot_start          = timer_read32() | 1;
     select_cursor      = slot_for_layer(_BASE);
