@@ -317,6 +317,10 @@ static void update_select_layer_state(void) {
         layer_on(_SELECT);
     } else {
         layer_off(_SELECT);
+        if (selector_target >= _SELECT) {
+            selector_target = _BASE;
+        }
+        layer_move(selector_target);
     }
 }
 
