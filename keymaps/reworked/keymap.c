@@ -22,6 +22,7 @@
 #define SELECT_STEP_MS       500
 #define BOOT_TOTAL_MS        2800
 #define BUTTON_DEBOUNCE_MS   150
+#define GP12_HOLD_MS         200
 
 // ── Layer enum ──────────────────────────────────────────────
 enum layers {
@@ -85,6 +86,8 @@ static uint32_t boot_start          = 0;
 static oled_view_t oled_view        = OLED_VIEW_LEGEND;
 static vsc_mode_t vsc_mode          = VSC_MODE_NONE;
 static vsc_mode_t last_vsc_mode     = VSC_MODE_BAR;
+static bool gp12_select_held        = false;
+static bool matrix_select_held      = false;
 
 // ── Key -> LED mapping ──────────────────────────────────────
 // Physical key numbering for OLED is row-major / left-to-right:
@@ -306,6 +309,14 @@ static const char *vsc_function_for(vsc_mode_t mode, uint8_t index) {
 
 static uint8_t active_layer_raw(void) {
     return get_highest_layer(layer_state | default_layer_state);
+}
+
+static void update_select_layer_state(void) {
+    if (gp12_select_held || matrix_select_held) {
+        layer_on(_SELECT);
+    } else {
+        layer_off(_SELECT);
+    }
 }
 
 static uint8_t slot_for_layer(uint8_t layer) {
@@ -636,7 +647,7 @@ LGUI(LCTL(KC_RGHT)),
 // ── Fallback combo: R0C0 + R2C2 → _BASE ────────────────────
 static bool r0c0_held = false;
 
-// ── Track SELECT entry so MO(_SELECT) remembers the base ───
+// ── Track SELECT entry so selector holds remember the base ─
 layer_state_t layer_state_set_user(layer_state_t state) {
     static layer_state_t last_state = 0;
 
@@ -672,6 +683,12 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             layer_move(_BASE);
             return false;
         }
+    }
+
+    if (keycode == MO(_SELECT)) {
+        matrix_select_held = record->event.pressed;
+        update_select_layer_state();
+        return false;
     }
 
     if (record->event.pressed) {
@@ -798,16 +815,31 @@ void matrix_scan_user(void) {
     }
     enc_was_pressed = enc_pressed;
 
-    // GP12: toggle OLED LL/LK view
-    static bool txt_was_pressed = false;
-    static uint32_t gp12_last_toggle = 0;
-    bool        txt_pressed     = (gpio_read_pin(LL_LK_BTN_PIN) == 0);
+    // GP12: tap toggles LL/LK, hold enters SELECT while held
+    static bool gp12_was_pressed = false;
+    static uint32_t gp12_press_timer = 0;
+    static uint32_t gp12_last_action = 0;
+    bool        gp12_pressed     = (gpio_read_pin(LL_LK_BTN_PIN) == 0);
 
-    if (txt_pressed && !txt_was_pressed && timer_elapsed32(gp12_last_toggle) > BUTTON_DEBOUNCE_MS) {
-        oled_view = (oled_view == OLED_VIEW_LEGEND) ? OLED_VIEW_LAST_KEY : OLED_VIEW_LEGEND;
-        gp12_last_toggle = timer_read32();
+    if (gp12_pressed && !gp12_was_pressed && timer_elapsed32(gp12_last_action) > BUTTON_DEBOUNCE_MS) {
+        gp12_press_timer = timer_read32();
     }
-    txt_was_pressed = txt_pressed;
+
+    if (gp12_pressed && !gp12_select_held && timer_elapsed32(gp12_press_timer) >= GP12_HOLD_MS) {
+        gp12_select_held = true;
+        update_select_layer_state();
+    }
+
+    if (!gp12_pressed && gp12_was_pressed) {
+        if (gp12_select_held) {
+            gp12_select_held = false;
+            update_select_layer_state();
+        } else if (timer_elapsed32(gp12_last_action) > BUTTON_DEBOUNCE_MS) {
+            oled_view = (oled_view == OLED_VIEW_LEGEND) ? OLED_VIEW_LAST_KEY : OLED_VIEW_LEGEND;
+        }
+        gp12_last_action = timer_read32();
+    }
+    gp12_was_pressed = gp12_pressed;
 
     if (active_layer_raw() == _SELECT && timer_elapsed32(select_cycle_timer) >= SELECT_STEP_MS) {
         select_cursor = next_select_slot(select_cursor, true);
