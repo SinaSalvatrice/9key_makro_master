@@ -19,7 +19,6 @@
 
 #define PAD_KEY_COUNT        9
 #define RGB_FRAME_MS         33
-#define SELECT_STEP_MS       500
 #define BOOT_TOTAL_MS        2800
 #define BUTTON_DEBOUNCE_MS   150
 #define GP12_HOLD_MS         200
@@ -80,7 +79,6 @@ static uint8_t  last_row        = 0;
 static uint8_t  last_col        = 0;
 static uint8_t  select_return_layer = _BASE;
 static uint8_t  select_cursor       = 0;
-static uint32_t select_cycle_timer  = 0;
 static uint32_t rgb_frame_timer     = 0;
 static uint32_t boot_start          = 0;
 static oled_view_t oled_view        = OLED_VIEW_LEGEND;
@@ -661,8 +659,7 @@ layer_state_t layer_state_set_user(layer_state_t state) {
             base = _BASE;
         }
         select_return_layer = base;
-        select_cursor       = slot_for_layer(base);
-        select_cycle_timer  = timer_read32();
+        select_cursor       = slot_for_layer(_BASE);
     }
 
     last_state = state;
@@ -753,7 +750,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         case RGB_PROFILE:
             if (record->event.pressed) {
                 rgb_minimal_mode = !rgb_minimal_mode;
-                select_cycle_timer = timer_read32();
             }
             return false;
     }
@@ -793,7 +789,6 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
             break;
         case _SELECT:
             select_cursor = next_select_slot(select_cursor, clockwise);
-            select_cycle_timer = timer_read32();
             break;
         default:
             tap_code(clockwise ? KC_VOLU : KC_VOLD);
@@ -841,11 +836,6 @@ void matrix_scan_user(void) {
     }
     gp12_was_pressed = gp12_pressed;
 
-    if (active_layer_raw() == _SELECT && timer_elapsed32(select_cycle_timer) >= SELECT_STEP_MS) {
-        select_cursor = next_select_slot(select_cursor, true);
-        select_cycle_timer = timer_read32();
-    }
-
 #ifdef RGBLIGHT_ENABLE
     if (timer_elapsed32(rgb_frame_timer) >= RGB_FRAME_MS) {
         rgb_frame_timer = timer_read32();
@@ -869,7 +859,6 @@ void keyboard_post_init_user(void) {
 
     boot_start          = timer_read32() | 1;
     select_cursor      = slot_for_layer(_BASE);
-    select_cycle_timer = timer_read32();
     rgb_frame_timer    = timer_read32();
 }
 
