@@ -22,7 +22,6 @@
 #define SELECT_STEP_MS       500
 #define BOOT_TOTAL_MS        2800
 #define BUTTON_DEBOUNCE_MS   150
-#define GP12_HOLD_MS         200
 
 // ── Layer enum ──────────────────────────────────────────────
 enum layers {
@@ -86,8 +85,6 @@ static uint32_t boot_start          = 0;
 static oled_view_t oled_view        = OLED_VIEW_LEGEND;
 static vsc_mode_t vsc_mode          = VSC_MODE_NONE;
 static vsc_mode_t last_vsc_mode     = VSC_MODE_BAR;
-static bool gp12_select_held        = false;
-static bool matrix_select_held      = false;
 
 // ── Key -> LED mapping ──────────────────────────────────────
 // Physical key numbering for OLED is row-major / left-to-right:
@@ -309,14 +306,6 @@ static const char *vsc_function_for(vsc_mode_t mode, uint8_t index) {
 
 static uint8_t active_layer_raw(void) {
     return get_highest_layer(layer_state | default_layer_state);
-}
-
-static void update_select_layer_state(void) {
-    if (gp12_select_held || matrix_select_held) {
-        layer_on(_SELECT);
-    } else {
-        layer_off(_SELECT);
-    }
 }
 
 static uint8_t slot_for_layer(uint8_t layer) {
@@ -685,12 +674,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         }
     }
 
-    if (keycode == MO(_SELECT)) {
-        matrix_select_held = record->event.pressed;
-        update_select_layer_state();
-        return false;
-    }
-
     if (record->event.pressed) {
         last_keycode = keycode;
         last_key_layer = active_layer_raw();
@@ -815,29 +798,14 @@ void matrix_scan_user(void) {
     }
     enc_was_pressed = enc_pressed;
 
-    // GP12: tap toggles LL/LK, hold enters SELECT while held
+    // GP12: toggle OLED LL/LK view
     static bool gp12_was_pressed = false;
-    static uint32_t gp12_press_timer = 0;
-    static uint32_t gp12_last_action = 0;
+    static uint32_t gp12_last_toggle = 0;
     bool        gp12_pressed     = (gpio_read_pin(LL_LK_BTN_PIN) == 0);
 
-    if (gp12_pressed && !gp12_was_pressed && timer_elapsed32(gp12_last_action) > BUTTON_DEBOUNCE_MS) {
-        gp12_press_timer = timer_read32();
-    }
-
-    if (gp12_pressed && !gp12_select_held && timer_elapsed32(gp12_press_timer) >= GP12_HOLD_MS) {
-        gp12_select_held = true;
-        update_select_layer_state();
-    }
-
-    if (!gp12_pressed && gp12_was_pressed) {
-        if (gp12_select_held) {
-            gp12_select_held = false;
-            update_select_layer_state();
-        } else if (timer_elapsed32(gp12_last_action) > BUTTON_DEBOUNCE_MS) {
-            oled_view = (oled_view == OLED_VIEW_LEGEND) ? OLED_VIEW_LAST_KEY : OLED_VIEW_LEGEND;
-        }
-        gp12_last_action = timer_read32();
+    if (gp12_pressed && !gp12_was_pressed && timer_elapsed32(gp12_last_toggle) > BUTTON_DEBOUNCE_MS) {
+        oled_view = (oled_view == OLED_VIEW_LEGEND) ? OLED_VIEW_LAST_KEY : OLED_VIEW_LEGEND;
+        gp12_last_toggle = timer_read32();
     }
     gp12_was_pressed = gp12_pressed;
 
