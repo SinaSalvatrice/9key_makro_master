@@ -54,6 +54,9 @@ enum custom_keycodes {
     VSC_5,
     VSC_6,
     RGB_PROFILE,
+    LAYER_LEGEND,
+    KEY_FUNCTION_LEGEND,
+    LAST_KEY_LEGEND
 };
 
 // ── Visual profile ──────────────────────────────────────────
@@ -67,7 +70,12 @@ typedef enum {
     VSC_MODE_CHAT,
 } vsc_mode_t;
 
-// ── State tracking ─────────────────────────────────────────
+typedef enum {
+    OLED_VIEW_LEGEND,
+    OLED_VIEW_LAST_KEY,
+} oled_view_t;
+
+// ── OLED / state tracking ───────────────────────────────────
 static uint16_t last_keycode       = KC_NO;
 static uint8_t  last_key_layer     = _BASE;
 static uint8_t  last_row           = 0;
@@ -75,9 +83,10 @@ static uint8_t  last_col           = 0;
 static uint8_t  selector_target    = _BASE;
 static uint8_t  select_cursor      = 0;
 static uint32_t rgb_frame_timer    = 0;
-static uint32_t boot_start         = 0;
-static vsc_mode_t vsc_mode         = VSC_MODE_NONE;
-static vsc_mode_t last_vsc_mode    = VSC_MODE_BAR;
+static uint32_t boot_start          = 0;
+static oled_view_t oled_view        = OLED_VIEW_LEGEND;
+static vsc_mode_t vsc_mode          = VSC_MODE_NONE;
+static vsc_mode_t last_vsc_mode     = VSC_MODE_BAR;
 static bool gp12_select_held        = false;
 static bool matrix_select_held      = false;
 
@@ -151,7 +160,7 @@ static const char *const vsc_chat_macros[6] = {
     "Write a concise commit message and short body for the current staged changes.",
 };
 
-static const char *const key_label_map[_LAYER_COUNT][PAD_KEY_COUNT] = {
+static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
     [_BASE] = {
         "SEL",  "UP",   "SPC",
         "LEFT", "ENT",  "RGHT",
@@ -336,7 +345,7 @@ static uint8_t next_select_slot(uint8_t idx, bool clockwise) {
     return idx;
 }
 
-static const char *key_label_for(uint8_t layer, uint8_t row, uint8_t col) {
+static const char *legend_label_for(uint8_t layer, uint8_t row, uint8_t col) {
     uint8_t index = (row * MATRIX_COLS) + col;
     if (layer >= _LAYER_COUNT || index >= PAD_KEY_COUNT) {
         return "----";
@@ -344,7 +353,7 @@ static const char *key_label_for(uint8_t layer, uint8_t row, uint8_t col) {
     if (layer == _VSC) {
         return vsc_label_for(current_vsc_preview_mode(), index);
     }
-    return key_label_map[layer][index];
+    return layer_legend[layer][index];
 }
 
 static const char *function_label_for(uint8_t layer, uint8_t row, uint8_t col) {
@@ -835,7 +844,7 @@ void matrix_scan_user(void) {
     enc_was_pressed = enc_pressed;
 
 #ifdef SELECTOR_BTN_PIN
-    // Optional dedicated selector button: hold enters SELECT while held
+    // Optional dedicated selector button: tap toggles OLED view, hold enters SELECT while held
     static bool gp12_was_pressed = false;
     static uint32_t gp12_press_timer = 0;
     static uint32_t gp12_last_action = 0;
@@ -854,6 +863,8 @@ void matrix_scan_user(void) {
         if (gp12_select_held) {
             gp12_select_held = false;
             update_select_layer_state();
+        } else if (timer_elapsed32(gp12_last_action) > BUTTON_DEBOUNCE_MS) {
+            oled_view = (oled_view == OLED_VIEW_LEGEND) ? OLED_VIEW_LAST_KEY : OLED_VIEW_LEGEND;
         }
         gp12_last_action = timer_read32();
     }
@@ -1007,30 +1018,48 @@ static void render_header(uint8_t layer) {
     write_line(0, line);
 }
 
-static void render_selector_status(void) {
+static void render_legend_view(uint8_t layer) {
     char line[22];
 
-    render_header(_SELECT);
-    snprintf(line, sizeof(line), "Target: %.12s", layer_name_long(selector_target));
-    write_line(1, line);
-    snprintf(line, sizeof(line), "Cursor: %u", select_cursor + 1);
+    render_header(layer);
+    write_line(1, "1      2      3");
+    snprintf(line, sizeof(line), "%-6.6s %-6.6s %-6.6s",
+             legend_label_for(layer, 0, 0),
+             legend_label_for(layer, 0, 1),
+             legend_label_for(layer, 0, 2));
     write_line(2, line);
-    snprintf(line, sizeof(line), "VSC: %s",
-             (current_vsc_preview_mode() == VSC_MODE_CHAT) ? "CHAT" : "BAR");
-    write_line(3, line);
-    write_line(4, "");
-    write_line(5, "Use enc to choose");
-    write_line(6, "Press slot to apply");
+    write_line(3, "4      5      6");
+    snprintf(line, sizeof(line), "%-6.6s %-6.6s %-6.6s",
+             legend_label_for(layer, 1, 0),
+             legend_label_for(layer, 1, 1),
+             legend_label_for(layer, 1, 2));
+    write_line(4, line);
+    write_line(5, "7      8      9");
+    snprintf(line, sizeof(line), "%-6.6s %-6.6s %-6.6s",
+             legend_label_for(layer, 2, 0),
+             legend_label_for(layer, 2, 1),
+             legend_label_for(layer, 2, 2));
+    write_line(6, line);
+
+    if (layer == _SELECT) {
+        snprintf(line, sizeof(line), "Cur%u Tgt->%.10s", select_cursor + 1, layer_name_long(selector_target));
+    } else if (layer == _VSC) {
+        snprintf(line, sizeof(line), "%s mode%s",
+                 (current_vsc_preview_mode() == VSC_MODE_CHAT) ? "CHAT" : "BAR",
+                 (vsc_mode != VSC_MODE_NONE) ? " [HELD]" : "");
+    } else {
 #ifdef SELECTOR_BTN_PIN
-    write_line(7, "Hold SEL / GP12");
+        snprintf(line, sizeof(line), "GP12: Lay <-> Last");
 #else
-    write_line(7, "Hold SEL to exit");
+        snprintf(line, sizeof(line), "Hold SEL for grid");
 #endif
+    }
+    write_line(7, line);
 }
 
 static void render_last_key_view(void) {
     char buf[22];
-    const char *label = key_label_for(last_key_layer, last_row, last_col);
+    const char *label = legend_label_for(last_key_layer, last_row, last_col);
     const char *func  = function_label_for(last_key_layer, last_row, last_col);
 
     render_header(last_key_layer);
@@ -1047,7 +1076,7 @@ static void render_last_key_view(void) {
              (last_row * 3) + last_col + 1, last_row, last_col);
     write_line(6, buf);
 #ifdef SELECTOR_BTN_PIN
-    write_line(7, "GP12: selector hold");
+    write_line(7, "GP12: back to Lay");
 #else
     write_line(7, "Last-key details");
 #endif
@@ -1059,10 +1088,14 @@ bool oled_task_user(void) {
         return false;
     }
 
-    if (active_layer_raw() == _SELECT) {
-        render_selector_status();
-    } else {
+    uint8_t layer = active_layer_raw();
+
+    if (layer == _SELECT) {
+        render_legend_view(_SELECT);
+    } else if (oled_view == OLED_VIEW_LAST_KEY) {
         render_last_key_view();
+    } else {
+        render_legend_view(layer);
     }
 
     return false;

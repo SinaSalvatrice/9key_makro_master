@@ -75,7 +75,8 @@ Current `CHAT` targets:
 - `EXPL` = explain code
 - `COMMIT` = write commit message text
 
-
+#### Issues
+- The default chat macros still need to be replaced with real prompt/message text.
 
 ## Your Part
 
@@ -113,7 +114,7 @@ Current `CHAT` targets:
 #### Implemented
 - Key 1 on each main layer is still `MO(_SELECT)`.
 - Current config uses the first matrix key as the selector; `SELECTOR_BTN_PIN` is optional and is not defined in the current `config.h`.
-- If the optional GP12 path is re-enabled, hold enters `SELECT` while the button is held.
+- If the optional GP12 path is re-enabled, tap toggles OLED legend vs last-key view and hold enters `SELECT`.
 - Encoder behavior is layer-dependent:
   - `BASE` = mouse wheel up/down
   - `WINDOW` = Alt+Tab next/previous
@@ -130,9 +131,10 @@ Current `CHAT` targets:
 ### OLED
 
 #### Implemented
-- OLED shows compact status and last-key information.
-- While `SELECT` is active, the OLED now shows selector status instead of the normal last-key view.
-- `VSC` status text still reflects whether `BAR` or `CHAT` is the current preview mode.
+- OLED default view shows a 3x3 legend table for the active layer.
+- OLED last-key view shows layer, key label, keycode, function, and matrix position.
+- OLED legend rendering changes on `VSC` depending on whether `BAR` or `CHAT` is the current preview mode.
+- While `SELECT` is active, the OLED now forces the selector legend/grid instead of showing the RGB or last-key view.
 
 #### Needs Testing
 - Confirm readability and spacing on the real display.
@@ -185,4 +187,6 @@ Current `CHAT` targets:
 
 ## shortforms i will use 
 
-- Last keycode pressed (btn,toggle) = LK
+- layer legend for active layer (btn) = LL
+- Last keycode pressed (btn,toggle)  = LK
+- Selector legend, (momentary selector) = SL
