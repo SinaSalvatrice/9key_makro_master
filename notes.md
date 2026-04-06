@@ -180,3 +180,8 @@ Current `CHAT` targets:
 - Use actual QMK build results as the source of truth for compile status.
 - Keep this file focused on current repo state plus the next intended direction.
 
+## shortforms i will use 
+
+- layer legend for active layer (btn) = LL
+- Last keycode pressed (btn,toggle)  = LK
+- Selector legend, (momentary selector) = SL
