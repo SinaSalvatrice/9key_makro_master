@@ -28,9 +28,10 @@ enum layers {
     _BASE,
     _WINDOW,
     _TEXT,
-    _RGB,
+    _MEDIA,
     _DEV,
     _VSC,
+    _RGB,
     _SELECT,
     _LAYER_COUNT
 };
@@ -40,6 +41,7 @@ enum custom_keycodes {
     SEL_BASE = SAFE_RANGE,
     SEL_WINDOW,
     SEL_TEXT,
+    SEL_MEDIA,
     SEL_RGB,
     SEL_DEV,
     SEL_VSC,
@@ -84,14 +86,6 @@ static oled_view_t oled_view        = OLED_VIEW_LEGEND;
 static vsc_mode_t vsc_mode          = VSC_MODE_NONE;
 static vsc_mode_t last_vsc_mode     = VSC_MODE_BAR;
 
-// ── Sign picker for TXT encoder ─────────────────────────────
-static const char sign_chars[] = "!@#$%^&*()-_=+[]{}|\\;:'\",.<>/?~`";
-#define SIGN_COUNT  (sizeof(sign_chars) - 1)
-static int8_t  sign_index       = -1;
-static bool    sign_picking     = false;
-static uint32_t sign_last_turn  = 0;
-#define SIGN_TIMEOUT_MS  1500
-
 // ── Key -> LED mapping ──────────────────────────────────────
 // Physical key numbering for OLED is row-major / left-to-right:
 //
@@ -120,11 +114,11 @@ static const select_slot_t select_slots[PAD_KEY_COUNT] = {
     { _BASE,   160, 220, 120, "BASE",   true  },  // key 1
     { _WINDOW, 176, 240, 120, "WINDOW", true  },  // key 2
     { _TEXT,    96, 220, 110, "TXT",    true  },  // key 3
-    { _RGB,    215, 240, 130, "RGB",    true  },  // key 4
+    { _MEDIA,   32, 255, 130, "MEDIA",  true  },  // key 4
     { _SELECT,   0,   0, 120, "SELECT", false },  // key 5 / style toggle
     { _DEV,     18,  255, 130, "DEV",   true  },  // key 6
     { _VSC,    200,  255, 130, "VSC",   true  },  // key 7
-    { _SELECT,   0,   0,  24, "FREE",   false },  // key 8
+    { _RGB,    215, 240, 130, "RGB",    true  },  // key 8
     { _SELECT,   0,   0,  24, "FREE",   false },  // key 9
 };
 
@@ -178,15 +172,20 @@ static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
         "ALL",   "COPY",  "PASTE",
         "CUT",   "SPC",   "PENT",
     },
+    [_MEDIA] = {
+        "SEL",  "PREV", "NEXT",
+        "RWND", "PLAY", "FFWD",
+        "VOL-", "MUTE", "VOL+",
+    },
     [_RGB] = {
         "SEL",  "SPD-", "TOG",
         "HUE+", "HUE-", "VAL+",
         "SAT+", "SAT-", "VAL-",
     },
     [_DEV] = {
-        "SEL",   "CTRL",  "SHIFT",
-        "ALT",   "GUI",   "BTN1",
-        "M<-",   "M^",    "M->",
+        "SEL",   "M^",    "SHFT",
+        "M<-",   "BTN1",  "M->",
+        "ALT",   "Mv",    "BTN2",
     },
     [_VSC] = {
         "SEL",   "BAR",   "CHAT",
@@ -195,8 +194,8 @@ static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
     },
     [_SELECT] = {
         "BASE", "WIN",  "TXT",
-        "RGB",  "FX",   "DEV",
-        "VSC",  "FREE", "FREE",
+        "MED",  "FX",   "DEV",
+        "VSC",  "RGB",  "FREE",
     },
 };
 
@@ -216,15 +215,20 @@ static const char *const layer_function[_LAYER_COUNT][PAD_KEY_COUNT] = {
         "Select all",     "Copy",           "Paste",
         "Cut",            "Space",          "Keypad enter",
     },
+    [_MEDIA] = {
+        "Select layer",   "Previous track", "Next track",
+        "Rewind",         "Play/Pause",     "Fast forward",
+        "Volume down",    "Mute",           "Volume up",
+    },
     [_RGB] = {
         "Select layer",   "Speed down",     "Toggle RGB",
         "Hue up",         "Hue down",       "Brightness up",
         "Saturation up",  "Saturation down", "Brightness down",
     },
     [_DEV] = {
-        "Select layer",   "Hold Ctrl",      "Hold Shift",
-        "Hold Alt",       "Hold GUI",       "Mouse button 1",
-        "Mouse left",     "Mouse up",       "Mouse right",
+        "Select layer",   "Mouse up",       "Hold Shift",
+        "Mouse left",     "Mouse button 1", "Mouse right",
+        "Hold Alt",       "Mouse down",     "Mouse button 2",
     },
     [_VSC] = {
         "Select layer",   "BAR mode",       "CHAT mode",
@@ -233,9 +237,10 @@ static const char *const layer_function[_LAYER_COUNT][PAD_KEY_COUNT] = {
     },
     [_SELECT] = {
         "Go to base",     "Go to window",   "Go to text",
-        "Go to RGB",      "Toggle FX mode", "Go to DEV",
-        "Go to VSC",      "Unused",         "Unused",
+        "Go to media",    "Toggle FX mode", "Go to DEV",
+        "Go to VSC",      "Go to RGB",      "Unused",
     },
+
 };
 
 static const char *layer_name_short(uint8_t l) {
@@ -243,6 +248,7 @@ static const char *layer_name_short(uint8_t l) {
         case _BASE:   return "BASE";
         case _WINDOW: return "WIN";
         case _TEXT:   return "TXT";
+        case _MEDIA:  return "MED";
         case _RGB:    return "RGB";
         case _DEV:    return "DEV";
         case _VSC:    return "VSC";
@@ -256,6 +262,7 @@ static const char *layer_name_long(uint8_t l) {
         case _BASE:   return "BASE";
         case _WINDOW: return "WINDOW";
         case _TEXT:   return "TXT";
+        case _MEDIA:  return "MEDIA";
         case _RGB:    return "RGB";
         case _DEV:    return "DEV";
         case _VSC:    return "VSC";
@@ -464,6 +471,16 @@ static void render_text_wild(void) {
     }
 }
 
+static void render_media_wild(void) {
+    uint32_t now = timer_read32();
+    for (uint8_t i = 0; i < PAD_KEY_COUNT; i++) {
+        uint8_t swing = triwave8_period(now, 3000, i * 18);
+        uint8_t hue   = lerp8(24, 42, swing);   // warm orange-gold
+        uint8_t val   = pulse_val(now, 2000, i * 14, 14, 100);
+        set_key_hsv(i, hue, 255, val);
+    }
+}
+
 static void render_rgb_wild(void) {
     uint32_t now       = timer_read32();
     bool     beatflash = ((now % 1100) < 120);
@@ -541,6 +558,9 @@ static void render_rgb_layer_visuals(void) {
         case _TEXT:
             render_text_wild();
             break;
+        case _MEDIA:
+            render_media_wild();
+            break;
         case _RGB:
             render_rgb_wild();
             break;
@@ -563,14 +583,15 @@ static void render_rgb_layer_visuals(void) {
 // ── Keymaps ─────────────────────────────────────────────────
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_BASE] = LAYOUT(
-        MO(_SELECT), KC_UP,        KC_SPC,
-        KC_LEFT,     KC_ENT,       KC_RGHT,
-        LCTL(KC_Z),  KC_DOWN,      LCTL(KC_R)
+        MO(_SELECT),         KC_UP,              KC_SPC,
+        KC_LEFT,             KC_ENT,             KC_RGHT,
+        LCTL(KC_Z),          KC_DOWN,            LCTL(KC_R)
     ),
 
     [_WINDOW] = LAYOUT(
         MO(_SELECT),         KC_HOME,            KC_END,
-        LGUI(LCTL(KC_LEFT)), LGUI(KC_D),              LGUI(LCTL(KC_RGHT)),
+        LGUI(LCTL(KC_LEFT)), LGUI(KC_D),
+LGUI(LCTL(KC_RGHT)),
         LSA(LALT(KC_TAB)),   LCTL(KC_TAB),       LALT(KC_TAB)
     ),
 
@@ -580,29 +601,35 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         LCTL(KC_X),          KC_SPC,             KC_PENT
     ),
 
+    [_MEDIA] = LAYOUT(
+        MO(_SELECT),         KC_MPRV,            KC_MNXT,
+        KC_MRWD,             KC_MPLY,            KC_MFFD,
+        KC_VOLD,             KC_MUTE,            KC_VOLU
+    ),
+
     [_RGB] = LAYOUT(
-        MO(_SELECT), UG_SPDD, UG_TOGG,
-        UG_HUEU,     UG_HUED, UG_VALU,
-        UG_SATU,     UG_SATD, UG_VALD
+        MO(_SELECT),         UG_SPDD,            UG_TOGG,
+        UG_HUEU,             UG_HUED,            UG_VALU,
+        UG_SATU,             UG_SATD,            UG_VALD
     ),
 
     [_DEV] = LAYOUT(
-        MO(_SELECT), KC_LCTL,  KC_LSFT,
-        KC_LALT,     KC_LGUI,  MS_BTN1,
-        MS_LEFT,     MS_UP,    MS_RGHT
+        MO(_SELECT),         MS_UP,              KC_LSFT,
+        MS_LEFT,             MS_BTN1,            MS_RGHT,
+        KC_LALT,             MS_DOWN,            MS_BTN2
     ),
 
     [_VSC] = LAYOUT(
-        MO(_SELECT), VSC_BAR,  VSC_CHAT,
-        VSC_1,       VSC_2,    VSC_3,
-        VSC_4,       VSC_5,    VSC_6
+        MO(_SELECT),         VSC_BAR,            VSC_CHAT,
+        VSC_1,               VSC_2,              VSC_3,
+        VSC_4,               VSC_5,              VSC_6
     ),
 
     // 1..9 = physical key numbering left to right
     [_SELECT] = LAYOUT(
-        SEL_BASE,   SEL_WINDOW, SEL_TEXT,
-        SEL_RGB,    RGB_PROFILE, SEL_DEV,
-        SEL_VSC,    KC_NO,      KC_NO
+        SEL_BASE,            SEL_WINDOW,         SEL_TEXT,
+        SEL_MEDIA,           RGB_PROFILE,        SEL_DEV,
+        SEL_VSC,             SEL_RGB,            KC_NO
     ),
 };
 
@@ -670,6 +697,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 select_target_layer(_TEXT);
             }
             return false;
+        case SEL_MEDIA:
+            if (record->event.pressed) {
+                select_target_layer(_MEDIA);
+            }
+            return false;
         case SEL_RGB:
             if (record->event.pressed) {
                 select_target_layer(_RGB);
@@ -727,23 +759,12 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
                 tap_code16(LSA(LALT(KC_TAB)));
             }
             break;
-        case _TEXT: {
-            uint32_t now = timer_read32();
-            if (!sign_picking || timer_elapsed32(sign_last_turn) > SIGN_TIMEOUT_MS) {
-                sign_index = clockwise ? 0 : (int8_t)(SIGN_COUNT - 1);
-                sign_picking = true;
-            } else {
-                tap_code(KC_BSPC);
-                if (clockwise) {
-                    sign_index = (sign_index + 1) % (int8_t)SIGN_COUNT;
-                } else {
-                    sign_index = (sign_index - 1 + (int8_t)SIGN_COUNT) % (int8_t)SIGN_COUNT;
-                }
-            }
-            send_char(sign_chars[sign_index]);
-            sign_last_turn = now;
+        case _TEXT:
+            tap_code(clockwise ? KC_RGHT : KC_LEFT);
             break;
-        }
+        case _MEDIA:
+            tap_code(clockwise ? KC_VOLU : KC_VOLD);
+            break;
         case _RGB:
             tap_code16(clockwise ? UG_VALU : UG_VALD);
             break;
@@ -766,25 +787,25 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 
 // ── Buttons + animation pump ────────────────────────────────
 void matrix_scan_user(void) {
-    // Encoder button: toggle OLED mode
+    // Encoder button (GP8): left mouse click
     static bool enc_was_pressed = false;
     static uint32_t enc_last_toggle = 0;
     bool        enc_pressed     = (gpio_read_pin(ENCODER_BTN_PIN) == 0);
 
     if (enc_pressed && !enc_was_pressed && timer_elapsed32(enc_last_toggle) > BUTTON_DEBOUNCE_MS) {
-        oled_view = (oled_view == OLED_VIEW_LEGEND) ? OLED_VIEW_LAST_KEY : OLED_VIEW_LEGEND;
+        tap_code(MS_BTN1);
         enc_last_toggle = timer_read32();
     }
     enc_was_pressed = enc_pressed;
 
-    // GP12: momentary TXT layer
+    // GP12: toggle OLED LL/LK view
     static bool txt_was_pressed = false;
-    bool        txt_pressed     = (gpio_read_pin(SELECTOR_BTN_PIN) == 0);
+    static uint32_t gp12_last_toggle = 0;
+    bool        txt_pressed     = (gpio_read_pin(LL_LK_BTN_PIN) == 0);
 
-    if (txt_pressed && !txt_was_pressed) {
-        layer_on(_TEXT);
-    } else if (!txt_pressed && txt_was_pressed) {
-        layer_off(_TEXT);
+    if (txt_pressed && !txt_was_pressed && timer_elapsed32(gp12_last_toggle) > BUTTON_DEBOUNCE_MS) {
+        oled_view = (oled_view == OLED_VIEW_LEGEND) ? OLED_VIEW_LAST_KEY : OLED_VIEW_LEGEND;
+        gp12_last_toggle = timer_read32();
     }
     txt_was_pressed = txt_pressed;
 
@@ -812,7 +833,7 @@ void keyboard_post_init_user(void) {
     gpio_write_pin_high(GP25);
 
     gpio_set_pin_input_high(ENCODER_BTN_PIN);
-    gpio_set_pin_input_high(SELECTOR_BTN_PIN);
+    gpio_set_pin_input_high(LL_LK_BTN_PIN);
 
     boot_start          = timer_read32() | 1;
     select_cursor      = slot_for_layer(_BASE);
@@ -968,7 +989,7 @@ static void render_legend_view(uint8_t layer) {
                  (current_vsc_preview_mode() == VSC_MODE_CHAT) ? "CHAT" : "BAR",
                  (vsc_mode != VSC_MODE_NONE) ? " [HELD]" : "");
     } else {
-        snprintf(line, sizeof(line), "BTN view  GP12 TXT");
+        snprintf(line, sizeof(line), "GP12: LL <-> LK");
     }
     write_line(7, line);
 }
@@ -991,7 +1012,7 @@ static void render_last_key_view(void) {
     snprintf(buf, sizeof(buf), "Pos:   %u (%u,%u)",
              (last_row * 3) + last_col + 1, last_row, last_col);
     write_line(6, buf);
-    write_line(7, "BTN legend");
+    write_line(7, "GP12: back to LL");
 }
 
 bool oled_task_user(void) {
