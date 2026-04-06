@@ -989,7 +989,7 @@ static void render_legend_view(uint8_t layer) {
                  (current_vsc_preview_mode() == VSC_MODE_CHAT) ? "CHAT" : "BAR",
                  (vsc_mode != VSC_MODE_NONE) ? " [HELD]" : "");
     } else {
-        snprintf(line, sizeof(line), "GP12: LL <-> LK");
+        snprintf(line, sizeof(line), "GP12: Lay <-> Last");
     }
     write_line(7, line);
 }
@@ -1012,7 +1012,7 @@ static void render_last_key_view(void) {
     snprintf(buf, sizeof(buf), "Pos:   %u (%u,%u)",
              (last_row * 3) + last_col + 1, last_row, last_col);
     write_line(6, buf);
-    write_line(7, "GP12: back to LL");
+    write_line(7, "GP12: back to Lay");
 }
 
 bool oled_task_user(void) {
