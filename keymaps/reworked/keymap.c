@@ -53,7 +53,10 @@ enum custom_keycodes {
     VSC_4,
     VSC_5,
     VSC_6,
-    RGB_PROFILE
+    RGB_PROFILE,
+    LAYER_LEGEND,
+    KEY_FUNCTION_LEGEND,
+    LAST_KEY_LEGEND
 };
 
 // ── Visual profile ──────────────────────────────────────────
@@ -150,7 +153,7 @@ static const char *const vsc_chat_functions[6] = {
 
 static const char *const vsc_chat_macros[6] = {
     "Summarize the selected file and list the most important implementation details.",
-    "Review the selected code for bugs, regressions, edge cases, and missing tests.",
+    "Review the selected repo for bugs, regressions, edge cases, and missing tests.",
     "Suggest a minimal fix for the current problem and explain the root cause.",
     "Write focused tests for the selected code path and cover the main edge cases.",
     "Explain this code step by step, including the important state changes and control flow.",
@@ -310,7 +313,7 @@ static uint8_t active_layer_raw(void) {
 }
 
 static void update_select_layer_state(void) {
-    if (gp12_select_held || matrix_select_held) {
+    if (matrix_select_held) {
         layer_on(_SELECT);
     } else {
         layer_off(_SELECT);
