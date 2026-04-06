@@ -336,8 +336,6 @@ static uint8_t next_select_slot(uint8_t idx, bool clockwise) {
     return idx;
 }
 
-static const char *legend_label_for(uint8_t layer, uint8_t row, uint8_t col);
-
 static const char *legend_label_for(uint8_t layer, uint8_t row, uint8_t col) {
     uint8_t index = (row * MATRIX_COLS) + col;
     if (layer >= _LAYER_COUNT || index >= PAD_KEY_COUNT) {
@@ -866,7 +864,6 @@ void keyboard_post_init_user(void) {
 
 #ifdef OLED_ENABLE
 oled_rotation_t oled_init_user(oled_rotation_t rotation) {
-    oled_set_brightness(255);
     return rotation;
 }
 
@@ -875,15 +872,6 @@ static void write_line(uint8_t row, const char *str) {
     snprintf(buf, sizeof(buf), "%-21.21s", str);
     oled_set_cursor(0, row);
     oled_write(buf, false);
-}
-
-static void write_key_row(uint8_t row, uint8_t base_index, uint8_t layer) {
-    char line[22];
-    snprintf(line, sizeof(line), "%u:%-4.4s %u:%-4.4s %u:%-4.4s",
-             base_index + 1, legend_label_for(layer, base_index / 3, 0),
-             base_index + 2, legend_label_for(layer, base_index / 3, 1),
-             base_index + 3, legend_label_for(layer, base_index / 3, 2));
-    write_line(row, line);
 }
 
 static bool get_basic_key_label(uint16_t kc, char *buf, uint8_t buflen) {
@@ -975,12 +963,6 @@ static void render_boot(void) {
 
     uint32_t t = timer_elapsed32(boot_start);
 
-#if defined(OLED_DISPLAY_128X32)
-    write_line(0, "");
-    write_line(1, t >=  800 ? "      I AM" : "        I");
-    write_line(2, t >= 1200 ? "      ROOT" : "");
-    write_line(3, "");
-#else
     write_line(0, "");
     write_line(1, "");
     write_line(2, t >=  800 ? "          I AM" : "             I");
@@ -989,20 +971,12 @@ static void render_boot(void) {
     write_line(5, "");
     write_line(6, "");
     write_line(7, "");
-#endif
 }
 
 static void render_header(uint8_t layer) {
     char line[22];
-
-#if defined(OLED_DISPLAY_128X32)
-    snprintf(line, sizeof(line), "%-4s FX:%s %s",
-             layer_name_short(layer), rgb_minimal_mode ? "Q" : "W",
-             (oled_view == OLED_VIEW_LAST_KEY) ? "LAST" : "LIVE");
-#else
     snprintf(line, sizeof(line), "%-6s FX:%s",
              layer_name_short(layer), rgb_minimal_mode ? "Q" : "W");
-#endif
     write_line(0, line);
 }
 
@@ -1010,12 +984,6 @@ static void render_legend_view(uint8_t layer) {
     char line[22];
 
     render_header(layer);
-
-#if defined(OLED_DISPLAY_128X32)
-    write_key_row(1, 0, layer);
-    write_key_row(2, 3, layer);
-    write_key_row(3, 6, layer);
-#else
     write_line(1, "1      2      3");
     snprintf(line, sizeof(line), "%-6.6s %-6.6s %-6.6s",
              legend_label_for(layer, 0, 0),
@@ -1045,7 +1013,6 @@ static void render_legend_view(uint8_t layer) {
         snprintf(line, sizeof(line), "GP12: Lay <-> Last");
     }
     write_line(7, line);
-#endif
 }
 
 static void render_last_key_view(void) {
@@ -1054,17 +1021,6 @@ static void render_last_key_view(void) {
     const char *func  = function_label_for(last_key_layer, last_row, last_col);
 
     render_header(last_key_layer);
-
-#if defined(OLED_DISPLAY_128X32)
-    snprintf(buf, sizeof(buf), "K%u %-16.16s",
-             (last_row * 3) + last_col + 1, label);
-    write_line(1, buf);
-    snprintf(buf, sizeof(buf), "KC 0x%04X", last_keycode);
-    write_line(2, buf);
-    snprintf(buf, sizeof(buf), "P%u %u,%u %-10.10s",
-             (last_row * 3) + last_col + 1, last_row, last_col, func);
-    write_line(3, buf);
-#else
     write_line(1, "LAST KEY");
     snprintf(buf, sizeof(buf), "Layer: %s", layer_name_long(last_key_layer));
     write_line(2, buf);
@@ -1078,7 +1034,6 @@ static void render_last_key_view(void) {
              (last_row * 3) + last_col + 1, last_row, last_col);
     write_line(6, buf);
     write_line(7, "GP12: back to Lay");
-#endif
 }
 
 bool oled_task_user(void) {
