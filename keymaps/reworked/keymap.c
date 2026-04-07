@@ -43,6 +43,22 @@ enum custom_keycodes {
     SEL_RGB,
     SEL_DEV,
     SEL_VSC,
+    WIN_BRO,
+    WIN_AUX,
+    WIN_1,
+    WIN_2,
+    WIN_3,
+    WIN_4,
+    WIN_5,
+    WIN_6,
+    TXT_ACT,
+    TXT_EDT,
+    TXT_1,
+    TXT_2,
+    TXT_3,
+    TXT_4,
+    TXT_5,
+    TXT_6,
     VSC_BAR,
     VSC_CHAT,
     VSC_1,
@@ -73,20 +89,34 @@ typedef enum {
     OLED_VIEW_LAST_KEY,
 } oled_view_t;
 
+typedef enum {
+    TEXT_MODE_NAV,
+    TEXT_MODE_ACTIONS,
+    TEXT_MODE_EDIT,
+} text_mode_t;
+
+typedef enum {
+    WINDOW_MODE_NAV,
+    WINDOW_MODE_BROWSER,
+} window_mode_t;
+
 // ── OLED / state tracking ───────────────────────────────────
-static uint16_t last_keycode        = KC_NO;
-static uint8_t  last_key_layer      = _BASE;
-static uint8_t  last_row            = 0;
-static uint8_t  last_col            = 0;
-static uint8_t  selector_target     = _BASE;
-static uint8_t  select_cursor       = 0;
-static uint32_t rgb_frame_timer     = 0;
-static uint32_t boot_start          = 0;
-static oled_view_t oled_view        = OLED_VIEW_LEGEND;
-static vsc_mode_t vsc_mode          = VSC_MODE_NONE;
-static vsc_mode_t last_vsc_mode     = VSC_MODE_BAR;
-static bool matrix_select_held      = false;
-static bool encoder_btn_pressed     = false;
+static uint16_t last_keycode         = KC_NO;
+static uint8_t  last_key_layer       = _BASE;
+static uint8_t  last_row             = 0;
+static uint8_t  last_col             = 0;
+static uint8_t  selector_target      = _BASE;
+static uint8_t  select_cursor        = 0;
+static uint32_t rgb_frame_timer      = 0;
+static uint32_t boot_start           = 0;
+static oled_view_t oled_view         = OLED_VIEW_LEGEND;
+static vsc_mode_t vsc_mode           = VSC_MODE_NONE;
+static vsc_mode_t last_vsc_mode      = VSC_MODE_BAR;
+static bool matrix_select_held       = false;
+static bool encoder_btn_pressed      = false;
+static bool text_action_held         = false;
+static bool text_edit_held           = false;
+static bool window_browser_held      = false;
 
 // ── Key -> LED mapping ──────────────────────────────────────
 // Physical key numbering for OLED is row-major / left-to-right:
@@ -158,6 +188,46 @@ static const char *const vsc_chat_macros[6] = {
     "Write a concise commit message and short body for the current staged changes.",
 };
 
+static const char *const text_nav_labels[6] = {
+    "HOME", "UP", "END", "LEFT", "DOWN", "RGHT"
+};
+
+static const char *const text_action_labels[6] = {
+    "ALL", "COPY", "PASTE", "CUT", "UNDO", "REDO"
+};
+
+static const char *const text_edit_labels[6] = {
+    "ENT", "BSPC", "SPC", "TAB", "SHIFT", "BTN1"
+};
+
+static const char *const text_nav_functions[6] = {
+    "Line start", "Cursor up", "Line end", "Cursor left", "Cursor down", "Cursor right"
+};
+
+static const char *const text_action_functions[6] = {
+    "Select all", "Copy", "Paste", "Cut", "Undo", "Redo"
+};
+
+static const char *const text_edit_functions[6] = {
+    "Enter", "Backspace", "Space", "Tab", "One-shot Shift", "Mouse button 1"
+};
+
+static const char *const window_nav_labels[6] = {
+    "DESK<", "TASK", "DESK>", "WIN<", "SHOW", "WIN>"
+};
+
+static const char *const window_browser_labels[6] = {
+    "BACK", "REFR", "FWD", "TAB<", "NEW", "TAB>"
+};
+
+static const char *const window_nav_functions[6] = {
+    "Previous desktop", "Task view", "Next desktop", "Previous window", "Show desktop", "Next window"
+};
+
+static const char *const window_browser_functions[6] = {
+    "Browser back", "Refresh page", "Browser forward", "Previous tab", "New tab", "Next tab"
+};
+
 static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
     [_BASE] = {
         "SEL",  "UP",   "BSPC",
@@ -165,14 +235,14 @@ static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
         "UNDO", "DOWN", "REDO",
     },
     [_WINDOW] = {
-        "SEL",   "HOME",  "END",
-        "DESK<", "NO",    "DESK>",
-        "WIN<",  "NO",    "WIN>",
+        "SEL",   "BRO",   "AUX",
+        "DESK<", "TASK",  "DESK>",
+        "WIN<",  "SHOW",  "WIN>",
     },
     [_TEXT] = {
-        "SEL",  "POS1", "END",
-        "ALL",  "COPY", "PASTE",
-        "CUT",  "SPC",  "PENT",
+        "SEL",  "ACT",  "EDT",
+        "HOME", "UP",   "END",
+        "LEFT", "DOWN", "RGHT",
     },
     [_MEDIA] = {
         "SEL",  "PREV", "NEXT",
@@ -203,19 +273,19 @@ static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
 
 static const char *const layer_function[_LAYER_COUNT][PAD_KEY_COUNT] = {
     [_BASE] = {
-        "Select layer",   "Arrow up",       "Space",
+        "Select layer",   "Arrow up",       "Backspace",
         "Arrow left",     "Enter",          "Arrow right",
         "Undo",           "Arrow down",     "Redo",
     },
     [_WINDOW] = {
-        "Select layer",   "Jump home",      "Jump end",
-        "Prev desktop",   "Unused",         "Next desktop",
-        "Prev window",    "Unused",         "Next window",
+        "Select layer",   "Browser combo",  "Reserved",
+        "Prev desktop",   "Task view",      "Next desktop",
+        "Prev window",    "Show desktop",   "Next window",
     },
     [_TEXT] = {
-        "Select layer",   "Line start",     "Line end",
-        "Select all",     "Copy",           "Paste",
-        "Cut",            "Space",          "Keypad enter",
+        "Select layer",   "Action combo",   "Edit combo",
+        "Line start",     "Cursor up",      "Line end",
+        "Cursor left",    "Cursor down",    "Cursor right",
     },
     [_MEDIA] = {
         "Select layer",   "Previous track", "Next track",
@@ -275,6 +345,82 @@ static const char *layer_name_long(uint8_t l) {
 static vsc_mode_t current_vsc_preview_mode(void) {
     if (vsc_mode != VSC_MODE_NONE) return vsc_mode;
     return last_vsc_mode;
+}
+
+static text_mode_t current_text_preview_mode(void) {
+    if (text_action_held) return TEXT_MODE_ACTIONS;
+    if (text_edit_held) return TEXT_MODE_EDIT;
+    return TEXT_MODE_NAV;
+}
+
+static window_mode_t current_window_preview_mode(void) {
+    return window_browser_held ? WINDOW_MODE_BROWSER : WINDOW_MODE_NAV;
+}
+
+static const char *text_label_for(uint8_t index) {
+    if (index == 0) return "SEL";
+    if (index == 1) return "ACT";
+    if (index == 2) return "EDT";
+    if (index >= 3 && index < 9) {
+        uint8_t slot = index - 3;
+        switch (current_text_preview_mode()) {
+            case TEXT_MODE_ACTIONS:
+                return text_action_labels[slot];
+            case TEXT_MODE_EDIT:
+                return text_edit_labels[slot];
+            case TEXT_MODE_NAV:
+            default:
+                return text_nav_labels[slot];
+        }
+    }
+    return "----";
+}
+
+static const char *text_function_for(uint8_t index) {
+    if (index == 0) return "Select layer";
+    if (index == 1) return "Hold text actions";
+    if (index == 2) return "Hold text edit tools";
+    if (index >= 3 && index < 9) {
+        uint8_t slot = index - 3;
+        switch (current_text_preview_mode()) {
+            case TEXT_MODE_ACTIONS:
+                return text_action_functions[slot];
+            case TEXT_MODE_EDIT:
+                return text_edit_functions[slot];
+            case TEXT_MODE_NAV:
+            default:
+                return text_nav_functions[slot];
+        }
+    }
+    return "Unknown";
+}
+
+static const char *window_label_for(uint8_t index) {
+    if (index == 0) return "SEL";
+    if (index == 1) return "BRO";
+    if (index == 2) return "AUX";
+    if (index >= 3 && index < 9) {
+        uint8_t slot = index - 3;
+        if (current_window_preview_mode() == WINDOW_MODE_BROWSER) {
+            return window_browser_labels[slot];
+        }
+        return window_nav_labels[slot];
+    }
+    return "----";
+}
+
+static const char *window_function_for(uint8_t index) {
+    if (index == 0) return "Select layer";
+    if (index == 1) return "Hold browser controls";
+    if (index == 2) return "Reserved for later";
+    if (index >= 3 && index < 9) {
+        uint8_t slot = index - 3;
+        if (current_window_preview_mode() == WINDOW_MODE_BROWSER) {
+            return window_browser_functions[slot];
+        }
+        return window_nav_functions[slot];
+    }
+    return "Unknown";
 }
 
 static const char *vsc_label_for(vsc_mode_t mode, uint8_t index) {
@@ -347,6 +493,12 @@ static const char *legend_label_for(uint8_t layer, uint8_t row, uint8_t col) {
     if (layer >= _LAYER_COUNT || index >= PAD_KEY_COUNT) {
         return "----";
     }
+    if (layer == _TEXT) {
+        return text_label_for(index);
+    }
+    if (layer == _WINDOW) {
+        return window_label_for(index);
+    }
     if (layer == _VSC) {
         return vsc_label_for(current_vsc_preview_mode(), index);
     }
@@ -357,6 +509,12 @@ static const char *function_label_for(uint8_t layer, uint8_t row, uint8_t col) {
     uint8_t index = (row * MATRIX_COLS) + col;
     if (layer >= _LAYER_COUNT || index >= PAD_KEY_COUNT) {
         return "Unknown";
+    }
+    if (layer == _TEXT) {
+        return text_function_for(index);
+    }
+    if (layer == _WINDOW) {
+        return window_function_for(index);
     }
     if (layer == _VSC) {
         return vsc_function_for(current_vsc_preview_mode(), index);
@@ -388,6 +546,75 @@ static void trigger_vsc_target(uint8_t slot) {
         send_vsc_command(vsc_bar_commands[slot]);
     } else if (vsc_mode == VSC_MODE_CHAT) {
         send_string(vsc_chat_macros[slot]);
+    }
+}
+
+static void tap_text_target(uint8_t slot) {
+    if (slot >= 6) {
+        return;
+    }
+
+    switch (current_text_preview_mode()) {
+        case TEXT_MODE_ACTIONS:
+            switch (slot) {
+                case 0: tap_code16(C(KC_A)); break;
+                case 1: tap_code16(C(KC_C)); break;
+                case 2: tap_code16(C(KC_V)); break;
+                case 3: tap_code16(C(KC_X)); break;
+                case 4: tap_code16(C(KC_Z)); break;
+                case 5: tap_code16(C(KC_Y)); break;
+            }
+            break;
+
+        case TEXT_MODE_EDIT:
+            switch (slot) {
+                case 0: tap_code(KC_ENT); break;
+                case 1: tap_code(KC_BSPC); break;
+                case 2: tap_code(KC_SPC); break;
+                case 3: tap_code(KC_TAB); break;
+                case 4: set_oneshot_mods(MOD_LSFT); break;
+                case 5: tap_code(MS_BTN1); break;
+            }
+            break;
+
+        case TEXT_MODE_NAV:
+        default:
+            switch (slot) {
+                case 0: tap_code(KC_HOME); break;
+                case 1: tap_code(KC_UP); break;
+                case 2: tap_code(KC_END); break;
+                case 3: tap_code(KC_LEFT); break;
+                case 4: tap_code(KC_DOWN); break;
+                case 5: tap_code(KC_RGHT); break;
+            }
+            break;
+    }
+}
+
+static void tap_window_target(uint8_t slot) {
+    if (slot >= 6) {
+        return;
+    }
+
+    if (current_window_preview_mode() == WINDOW_MODE_BROWSER) {
+        switch (slot) {
+            case 0: tap_code16(A(KC_LEFT)); break;
+            case 1: tap_code16(C(KC_R)); break;
+            case 2: tap_code16(A(KC_RGHT)); break;
+            case 3: tap_code16(C(S(KC_TAB))); break;
+            case 4: tap_code16(C(KC_T)); break;
+            case 5: tap_code16(C(KC_TAB)); break;
+        }
+        return;
+    }
+
+    switch (slot) {
+        case 0: tap_code16(G(C(KC_LEFT))); break;
+        case 1: tap_code16(G(KC_TAB)); break;
+        case 2: tap_code16(G(C(KC_RGHT))); break;
+        case 3: tap_code16(S(A(KC_TAB))); break;
+        case 4: tap_code16(G(KC_D)); break;
+        case 5: tap_code16(A(KC_TAB)); break;
     }
 }
 
@@ -606,19 +833,19 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_BASE] = LAYOUT(
         MO(_SELECT),         KC_UP,              KC_BSPC,
         KC_LEFT,             KC_ENT,             KC_RGHT,
-        LCTL(KC_Z),          KC_DOWN,            LCTL(KC_R)
+        LCTL(KC_Z),          KC_DOWN,            LCTL(KC_Y)
     ),
 
     [_WINDOW] = LAYOUT(
-        MO(_SELECT),         KC_HOME,            KC_END,
-        LGUI(LCTL(KC_LEFT)), LGUI(KC_D),         LGUI(LCTL(KC_RGHT)),
-        LSA(LALT(KC_TAB)),   LCTL(KC_TAB),       LALT(KC_TAB)
+        MO(_SELECT),         WIN_BRO,            WIN_AUX,
+        WIN_1,               WIN_2,              WIN_3,
+        WIN_4,               WIN_5,              WIN_6
     ),
 
     [_TEXT] = LAYOUT(
-        MO(_SELECT),         KC_HOME,            KC_END,
-        LCTL(KC_A),          LCTL(KC_C),         LCTL(KC_V),
-        LCTL(KC_X),          KC_SPC,             KC_PENT
+        MO(_SELECT),         TXT_ACT,            TXT_EDT,
+        TXT_1,               TXT_2,              TXT_3,
+        TXT_4,               TXT_5,              TXT_6
     ),
 
     [_MEDIA] = LAYOUT(
@@ -758,6 +985,43 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             }
             return false;
 
+        case WIN_BRO:
+            window_browser_held = record->event.pressed;
+            return false;
+
+        case WIN_AUX:
+            return false;
+
+        case WIN_1:
+        case WIN_2:
+        case WIN_3:
+        case WIN_4:
+        case WIN_5:
+        case WIN_6:
+            if (record->event.pressed) {
+                tap_window_target((uint8_t)(keycode - WIN_1));
+            }
+            return false;
+
+        case TXT_ACT:
+            text_action_held = record->event.pressed;
+            return false;
+
+        case TXT_EDT:
+            text_edit_held = record->event.pressed;
+            return false;
+
+        case TXT_1:
+        case TXT_2:
+        case TXT_3:
+        case TXT_4:
+        case TXT_5:
+        case TXT_6:
+            if (record->event.pressed) {
+                tap_text_target((uint8_t)(keycode - TXT_1));
+            }
+            return false;
+
         case VSC_BAR:
             if (record->event.pressed) {
                 vsc_mode = VSC_MODE_BAR;
@@ -807,10 +1071,12 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
             break;
 
         case _WINDOW:
-            if (clockwise) {
-                tap_code16(LALT(KC_TAB));
+            if (current_window_preview_mode() == WINDOW_MODE_BROWSER) {
+                tap_code16(clockwise ? C(KC_PGDN) : C(KC_PGUP));
+            } else if (clockwise) {
+                tap_code16(A(KC_TAB));
             } else {
-                tap_code16(LSA(LALT(KC_TAB)));
+                tap_code16(S(A(KC_TAB)));
             }
             break;
 
@@ -1002,6 +1268,24 @@ static void render_legend_view(uint8_t layer) {
         snprintf(line, sizeof(line), "%s mode%s",
                  (current_vsc_preview_mode() == VSC_MODE_CHAT) ? "CHAT" : "BAR",
                  (vsc_mode != VSC_MODE_NONE) ? " [HELD]" : "");
+    } else if (layer == _TEXT) {
+        switch (current_text_preview_mode()) {
+            case TEXT_MODE_ACTIONS:
+                snprintf(line, sizeof(line), "TXT mode: ACT [HELD]");
+                break;
+            case TEXT_MODE_EDIT:
+                snprintf(line, sizeof(line), "TXT mode: EDT [HELD]");
+                break;
+            case TEXT_MODE_NAV:
+            default:
+                snprintf(line, sizeof(line), "ACT/EDT = text mods");
+                break;
+        }
+    } else if (layer == _WINDOW) {
+        snprintf(line, sizeof(line), "%s",
+                 (current_window_preview_mode() == WINDOW_MODE_BROWSER)
+                     ? "BRO mode: tabs/web"
+                     : "BRO = browser tools");
     } else {
 #ifdef SELECTOR_BTN_PIN
         snprintf(line, sizeof(line), "GP12: Lay <-> Last");
