@@ -378,19 +378,10 @@ static void send_vsc_command(const char *command) {
     tap_code(KC_ENT);
 }
 
-static void trigger_vsc_target(uint8_t slot) {
-    if (slot >= 6) {
-        return;
-    }
-
-    vsc_mode_t mode = current_vsc_preview_mode();
-    last_vsc_mode = mode;
-
-    if (mode == VSC_MODE_BAR) {
-        send_vsc_command(vsc_bar_commands[slot]);
-    } else if (mode == VSC_MODE_CHAT) {
-        send_string(vsc_chat_macros[slot]);
-    }
+if (flash && (i % 2 == 0)) {
+    hue = 176;
+    sat = 220;
+    val = 110;
 }
 
 static uint8_t lerp8(uint8_t a, uint8_t b, uint8_t t) {
@@ -472,10 +463,11 @@ static void render_window_wild(void) {
             val = 90;
         }
 
-        if (flash && (i % 2 == 0)) {
-            sat = 30;
-            val = 180;
-        }
+if (flash && (i % 2 == 0)) {
+    hue = 176;
+    sat = 220;
+    val = 110;
+}
 
         set_key_hsv(i, hue, sat, val);
     }

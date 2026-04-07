@@ -150,6 +150,8 @@ Current `CHAT` targets:
 #### Issues
 - LED order still needs physical verification on the real strip.
 
+- WIN layereffect includes white flashing. its annoying
+
 ### VSC
 
 #### Implemented
