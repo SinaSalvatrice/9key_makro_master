@@ -704,12 +704,17 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         }
     }
 
-    if (keycode == MO(_SELECT)) {
-        matrix_select_held = record->event.pressed;
+   if (keycode == MO(_SELECT)) {
+    if (record->event.pressed) {
+        matrix_select_held = true;
         update_select_layer_state();
-        return false;
+    } else {
+        matrix_select_held = false;
+        update_select_layer_state();
+        layer_move(selector_target);
     }
-
+    return false;
+}
     if (record->event.pressed) {
         last_keycode = keycode;
         last_key_layer = active_layer_raw();

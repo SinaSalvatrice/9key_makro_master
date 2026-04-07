@@ -129,6 +129,7 @@ Current `CHAT` targets:
 - Confirm the fallback `R0C0 + R2C2 -> BASE` combo still feels useful.
 
 ### OLED
+- "BAR" & "CHAT" under Vsc layer should only be shown momentary
 
 #### Implemented
 - OLED default view shows a 3x3 legend table for the active layer.
