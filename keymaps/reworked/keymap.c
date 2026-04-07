@@ -160,7 +160,7 @@ static const char *const vsc_chat_macros[6] = {
 
 static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
     [_BASE] = {
-        "SEL",  "UP",   "SPC",
+        "SEL",  "UP",   "BSPC",
         "LEFT", "ENT",  "RGHT",
         "UNDO", "DOWN", "REDO",
     },

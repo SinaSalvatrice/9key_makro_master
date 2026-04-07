@@ -109,4 +109,14 @@
 - VSC - 2/0
 - RGB - 2/1 
 
-- move the hole 
+- Extend TXT layer.
+- the first two availale keys are modifiers.
+- The rest on no kombo pressed are defined as followed: home, up, end, left, down, right
+- first (_ACT) toggles actions like select all, copy, paste, cut, undo, redo
+- second (_EDT) toggles textedit keys such as enter, backspace, space, tab, shift and mouse key 1.
+- IMPORTANT: enc A+B go through the text. the encoder btn should transform this movement into a selection of these characters. 
+
+- Extend Windows layer. 
+- the first two availale keys are modifiers
+- the first (BRO) activates browser control, whatever that may include, surprise me.
+- the second one comes later
