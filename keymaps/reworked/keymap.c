@@ -830,6 +830,9 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
     return false;
 }
 
+// ── Buttons + animation pump ────────────────────────────────
+void matrix_scan_user(void)
+
 
 // ── Init ────────────────────────────────────────────────────
 void keyboard_post_init_user(void) {
