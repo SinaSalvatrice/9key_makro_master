@@ -313,7 +313,7 @@ static uint8_t active_layer_raw(void) {
 }
 
 static void update_select_layer_state(void) {
-    if (matrix_select_held || gp12_select_held) {
+    if (matrix_select_held) {
         layer_on(_SELECT);
     } else {
         layer_off(_SELECT);
@@ -836,6 +836,24 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 }
 
 void matrix_scan_user(void) {
+#ifdef SELECTOR_BTN_PIN
+    static bool gp12_was_pressed = false;
+    static uint32_t gp12_last_action = 0;
+
+    bool gp12_pressed = (gpio_read_pin(SELECTOR_BTN_PIN) == 0);
+
+    if (!gp12_pressed && gp12_was_pressed) {
+        if (timer_elapsed32(gp12_last_action) > BUTTON_DEBOUNCE_MS) {
+            oled_view = (oled_view == OLED_VIEW_LEGEND)
+                      ? OLED_VIEW_LAST_KEY
+                      : OLED_VIEW_LEGEND;
+            gp12_last_action = timer_read32();
+        }
+    }
+
+    gp12_was_pressed = gp12_pressed;
+#endif
+
 #ifdef RGBLIGHT_ENABLE
     if (timer_elapsed32(rgb_frame_timer) >= RGB_FRAME_MS) {
         rgb_frame_timer = timer_read32();
@@ -843,7 +861,6 @@ void matrix_scan_user(void) {
     }
 #endif
 }
-
 
 // ── Init ────────────────────────────────────────────────────
 void keyboard_post_init_user(void) {
