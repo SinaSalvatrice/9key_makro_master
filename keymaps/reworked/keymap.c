@@ -830,54 +830,6 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
     return false;
 }
 
-// ── Buttons + animation pump ────────────────────────────────
-void matrix_scan_user(void) {
-    // Encoder button (GP8): left mouse click
-    static bool enc_was_pressed = false;
-    static uint32_t enc_last_toggle = 0;
-    bool        enc_pressed     = (gpio_read_pin(ENCODER_BTN_PIN) == 0);
-
-    if (enc_pressed && !enc_was_pressed && timer_elapsed32(enc_last_toggle) > BUTTON_DEBOUNCE_MS) {
-        tap_code(MS_BTN1);
-        enc_last_toggle = timer_read32();
-    }
-    enc_was_pressed = enc_pressed;
-
-#ifdef SELECTOR_BTN_PIN
-    // Optional dedicated selector button: tap toggles OLED view, hold enters SELECT while held
-    static bool gp12_was_pressed = false;
-    static uint32_t gp12_press_timer = 0;
-    static uint32_t gp12_last_action = 0;
-    bool        gp12_pressed     = (gpio_read_pin(SELECTOR_BTN_PIN) == 0);
-
-    if (gp12_pressed && !gp12_was_pressed && timer_elapsed32(gp12_last_action) > BUTTON_DEBOUNCE_MS) {
-        gp12_press_timer = timer_read32();
-    }
-
-    if (gp12_pressed && !gp12_select_held && timer_elapsed32(gp12_press_timer) >= GP12_HOLD_MS) {
-        gp12_select_held = true;
-        update_select_layer_state();
-    }
-
-    if (!gp12_pressed && gp12_was_pressed) {
-        if (gp12_select_held) {
-            gp12_select_held = false;
-            update_select_layer_state();
-        } else if (timer_elapsed32(gp12_last_action) > BUTTON_DEBOUNCE_MS) {
-            oled_view = (oled_view == OLED_VIEW_LEGEND) ? OLED_VIEW_LAST_KEY : OLED_VIEW_LEGEND;
-        }
-        gp12_last_action = timer_read32();
-    }
-    gp12_was_pressed = gp12_pressed;
-#endif
-
-#ifdef RGBLIGHT_ENABLE
-    if (timer_elapsed32(rgb_frame_timer) >= RGB_FRAME_MS) {
-        rgb_frame_timer = timer_read32();
-        render_rgb_layer_visuals();
-    }
-#endif
-}
 
 // ── Init ────────────────────────────────────────────────────
 void keyboard_post_init_user(void) {
