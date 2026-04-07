@@ -93,3 +93,20 @@
 - layer legend for active layer (`btn`) = `LL`
 - last keycode pressed (`btn`, toggle) = `LK`
 - selector legend (momentary selector) = `SL`
+
+
+
+## to do 
+- verify RGB pixel position under the keys in layer mod.
+ 
+- base - 0/0 
+- win - 0/1 
+- txt - 0/2
+
+- med - 1/0
+- Fx - 1/1 no pixel because of switching this exactly behavior, good 👍 
+- dev - 1/2
+- VSC - 2/0
+- RGB - 2/1 
+
+- move the hole 
