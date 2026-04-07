@@ -117,6 +117,9 @@ static bool encoder_btn_pressed      = false;
 static bool text_action_held         = false;
 static bool text_edit_held           = false;
 static bool window_browser_held      = false;
+static text_mode_t last_key_text_mode    = TEXT_MODE_NAV;
+static window_mode_t last_key_window_mode = WINDOW_MODE_NAV;
+static vsc_mode_t last_key_vsc_mode      = VSC_MODE_BAR;
 
 // ── Key -> LED mapping ──────────────────────────────────────
 // Physical key numbering for OLED is row-major / left-to-right:
@@ -357,13 +360,13 @@ static window_mode_t current_window_preview_mode(void) {
     return window_browser_held ? WINDOW_MODE_BROWSER : WINDOW_MODE_NAV;
 }
 
-static const char *text_label_for(uint8_t index) {
+static const char *text_label_for_mode(text_mode_t mode, uint8_t index) {
     if (index == 0) return "SEL";
     if (index == 1) return "ACT";
     if (index == 2) return "EDT";
     if (index >= 3 && index < 9) {
         uint8_t slot = index - 3;
-        switch (current_text_preview_mode()) {
+        switch (mode) {
             case TEXT_MODE_ACTIONS:
                 return text_action_labels[slot];
             case TEXT_MODE_EDIT:
@@ -376,13 +379,13 @@ static const char *text_label_for(uint8_t index) {
     return "----";
 }
 
-static const char *text_function_for(uint8_t index) {
+static const char *text_function_for_mode(text_mode_t mode, uint8_t index) {
     if (index == 0) return "Select layer";
     if (index == 1) return "Hold text actions";
     if (index == 2) return "Hold text edit tools";
     if (index >= 3 && index < 9) {
         uint8_t slot = index - 3;
-        switch (current_text_preview_mode()) {
+        switch (mode) {
             case TEXT_MODE_ACTIONS:
                 return text_action_functions[slot];
             case TEXT_MODE_EDIT:
@@ -395,13 +398,13 @@ static const char *text_function_for(uint8_t index) {
     return "Unknown";
 }
 
-static const char *window_label_for(uint8_t index) {
+static const char *window_label_for_mode(window_mode_t mode, uint8_t index) {
     if (index == 0) return "SEL";
     if (index == 1) return "BRO";
     if (index == 2) return "AUX";
     if (index >= 3 && index < 9) {
         uint8_t slot = index - 3;
-        if (current_window_preview_mode() == WINDOW_MODE_BROWSER) {
+        if (mode == WINDOW_MODE_BROWSER) {
             return window_browser_labels[slot];
         }
         return window_nav_labels[slot];
@@ -409,18 +412,34 @@ static const char *window_label_for(uint8_t index) {
     return "----";
 }
 
-static const char *window_function_for(uint8_t index) {
+static const char *window_function_for_mode(window_mode_t mode, uint8_t index) {
     if (index == 0) return "Select layer";
     if (index == 1) return "Hold browser controls";
     if (index == 2) return "Reserved for later";
     if (index >= 3 && index < 9) {
         uint8_t slot = index - 3;
-        if (current_window_preview_mode() == WINDOW_MODE_BROWSER) {
+        if (mode == WINDOW_MODE_BROWSER) {
             return window_browser_functions[slot];
         }
         return window_nav_functions[slot];
     }
     return "Unknown";
+}
+
+static const char *text_label_for(uint8_t index) {
+    return text_label_for_mode(current_text_preview_mode(), index);
+}
+
+static const char *text_function_for(uint8_t index) {
+    return text_function_for_mode(current_text_preview_mode(), index);
+}
+
+static const char *window_label_for(uint8_t index) {
+    return window_label_for_mode(current_window_preview_mode(), index);
+}
+
+static const char *window_function_for(uint8_t index) {
+    return window_function_for_mode(current_window_preview_mode(), index);
 }
 
 static const char *vsc_label_for(vsc_mode_t mode, uint8_t index) {
@@ -520,6 +539,42 @@ static const char *function_label_for(uint8_t layer, uint8_t row, uint8_t col) {
         return vsc_function_for(current_vsc_preview_mode(), index);
     }
     return layer_function[layer][index];
+}
+
+static const char *last_key_label_for(void) {
+    uint8_t index = (last_row * MATRIX_COLS) + last_col;
+    if (last_key_layer >= _LAYER_COUNT || index >= PAD_KEY_COUNT) {
+        return "----";
+    }
+
+    if (last_key_layer == _TEXT) {
+        return text_label_for_mode(last_key_text_mode, index);
+    }
+    if (last_key_layer == _WINDOW) {
+        return window_label_for_mode(last_key_window_mode, index);
+    }
+    if (last_key_layer == _VSC) {
+        return vsc_label_for(last_key_vsc_mode, index);
+    }
+    return layer_legend[last_key_layer][index];
+}
+
+static const char *last_key_function_for(void) {
+    uint8_t index = (last_row * MATRIX_COLS) + last_col;
+    if (last_key_layer >= _LAYER_COUNT || index >= PAD_KEY_COUNT) {
+        return "Unknown";
+    }
+
+    if (last_key_layer == _TEXT) {
+        return text_function_for_mode(last_key_text_mode, index);
+    }
+    if (last_key_layer == _WINDOW) {
+        return window_function_for_mode(last_key_window_mode, index);
+    }
+    if (last_key_layer == _VSC) {
+        return vsc_function_for(last_key_vsc_mode, index);
+    }
+    return layer_function[last_key_layer][index];
 }
 
 static void send_vsc_command(const char *command) {
@@ -936,10 +991,13 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     }
 
     if (record->event.pressed) {
-        last_keycode   = keycode;
-        last_key_layer = active_layer_raw();
-        last_row       = record->event.key.row;
-        last_col       = record->event.key.col;
+        last_keycode          = keycode;
+        last_key_layer        = active_layer_raw();
+        last_row              = record->event.key.row;
+        last_col              = record->event.key.col;
+        last_key_text_mode    = current_text_preview_mode();
+        last_key_window_mode  = current_window_preview_mode();
+        last_key_vsc_mode     = current_vsc_preview_mode();
     }
 
     switch (keycode) {
@@ -1269,23 +1327,19 @@ static void render_legend_view(uint8_t layer) {
                  (current_vsc_preview_mode() == VSC_MODE_CHAT) ? "CHAT" : "BAR",
                  (vsc_mode != VSC_MODE_NONE) ? " [HELD]" : "");
     } else if (layer == _TEXT) {
-        switch (current_text_preview_mode()) {
-            case TEXT_MODE_ACTIONS:
-                snprintf(line, sizeof(line), "TXT mode: ACT [HELD]");
-                break;
-            case TEXT_MODE_EDIT:
-                snprintf(line, sizeof(line), "TXT mode: EDT [HELD]");
-                break;
-            case TEXT_MODE_NAV:
-            default:
-                snprintf(line, sizeof(line), "ACT/EDT = text mods");
-                break;
+        const char *mode = "NAV";
+        if (text_action_held) {
+            mode = "ACT";
+        } else if (text_edit_held) {
+            mode = "EDT";
         }
+        snprintf(line, sizeof(line), "TXT %s%s",
+                 mode,
+                 (text_action_held || text_edit_held) ? " [HELD]" : "");
     } else if (layer == _WINDOW) {
-        snprintf(line, sizeof(line), "%s",
-                 (current_window_preview_mode() == WINDOW_MODE_BROWSER)
-                     ? "BRO mode: tabs/web"
-                     : "BRO = browser tools");
+        snprintf(line, sizeof(line), "WIN %s%s",
+                 window_browser_held ? "BRO" : "NAV",
+                 window_browser_held ? " [HELD]" : "");
     } else {
 #ifdef SELECTOR_BTN_PIN
         snprintf(line, sizeof(line), "GP12: Lay <-> Last");
@@ -1298,8 +1352,8 @@ static void render_legend_view(uint8_t layer) {
 
 static void render_last_key_view(void) {
     char buf[22];
-    const char *label = legend_label_for(last_key_layer, last_row, last_col);
-    const char *func  = function_label_for(last_key_layer, last_row, last_col);
+    const char *label = last_key_label_for();
+    const char *func  = last_key_function_for();
 
     render_header(last_key_layer);
     write_line(1, "LAST KEY");
