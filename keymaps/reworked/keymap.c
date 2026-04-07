@@ -830,6 +830,15 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
     return false;
 }
 
+void matrix_scan_user(void) {
+#ifdef RGBLIGHT_ENABLE
+    if (timer_elapsed32(rgb_frame_timer) >= RGB_FRAME_MS) {
+        rgb_frame_timer = timer_read32();
+        render_rgb_layer_visuals();
+    }
+#endif
+}
+
 
 // ── Init ────────────────────────────────────────────────────
 void keyboard_post_init_user(void) {
