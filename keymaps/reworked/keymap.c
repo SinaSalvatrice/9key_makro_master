@@ -1,4 +1,3 @@
-
 #include QMK_KEYBOARD_H
 #include "gpio.h"
 #include <stdio.h>
@@ -21,7 +20,6 @@
 #define RGB_FRAME_MS         33
 #define BOOT_TOTAL_MS        2800
 #define BUTTON_DEBOUNCE_MS   150
-#define GP12_HOLD_MS         200
 
 // ── Layer enum ──────────────────────────────────────────────
 enum layers {
@@ -76,13 +74,13 @@ typedef enum {
 } oled_view_t;
 
 // ── OLED / state tracking ───────────────────────────────────
-static uint16_t last_keycode       = KC_NO;
-static uint8_t  last_key_layer     = _BASE;
-static uint8_t  last_row           = 0;
-static uint8_t  last_col           = 0;
-static uint8_t  selector_target    = _BASE;
-static uint8_t  select_cursor      = 0;
-static uint32_t rgb_frame_timer    = 0;
+static uint16_t last_keycode        = KC_NO;
+static uint8_t  last_key_layer      = _BASE;
+static uint8_t  last_row            = 0;
+static uint8_t  last_col            = 0;
+static uint8_t  selector_target     = _BASE;
+static uint8_t  select_cursor       = 0;
+static uint32_t rgb_frame_timer     = 0;
 static uint32_t boot_start          = 0;
 static oled_view_t oled_view        = OLED_VIEW_LEGEND;
 static vsc_mode_t vsc_mode          = VSC_MODE_NONE;
@@ -119,8 +117,8 @@ static const select_slot_t select_slots[PAD_KEY_COUNT] = {
     { _TEXT,    96, 220, 110, "TXT",    true  },  // key 3
     { _MEDIA,   32, 255, 130, "MEDIA",  true  },  // key 4
     { _SELECT,   0,   0, 120, "SELECT", false },  // key 5 / style toggle
-    { _DEV,     18,  255, 130, "DEV",   true  },  // key 6
-    { _VSC,    200,  255, 130, "VSC",   true  },  // key 7
+    { _DEV,     18, 255, 130, "DEV",    true  },  // key 6
+    { _VSC,    200, 255, 130, "VSC",    true  },  // key 7
     { _RGB,    215, 240, 130, "RGB",    true  },  // key 8
     { _SELECT,   0,   0,  24, "FREE",   false },  // key 9
 };
@@ -163,7 +161,7 @@ static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
     [_BASE] = {
         "SEL",  "UP",   "SPC",
         "LEFT", "ENT",  "RGHT",
-        "UNDO",  "DOWN", "REDO",
+        "UNDO", "DOWN", "REDO",
     },
     [_WINDOW] = {
         "SEL",   "HOME",  "END",
@@ -171,9 +169,9 @@ static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
         "WIN<",  "NO",    "WIN>",
     },
     [_TEXT] = {
-        "SEL",   "POS1",  "END",
-        "ALL",   "COPY",  "PASTE",
-        "CUT",   "SPC",   "PENT",
+        "SEL",  "POS1", "END",
+        "ALL",  "COPY", "PASTE",
+        "CUT",  "SPC",  "PENT",
     },
     [_MEDIA] = {
         "SEL",  "PREV", "NEXT",
@@ -186,14 +184,14 @@ static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
         "SAT+", "SAT-", "VAL-",
     },
     [_DEV] = {
-        "SEL",   "CTRL",  "SHIFT",
-        "ALT",   "GUI",   "BTN1",
-        "M<-",   "M^",    "M->",
+        "SEL",  "CTRL", "SHIFT",
+        "ALT",  "GUI",  "BTN1",
+        "M<-",  "M^",   "M->",
     },
     [_VSC] = {
-        "SEL",   "BAR",   "CHAT",
-        "EXPL",  "SRC",   "GH-A",
-        "GHUB",  "GPT",   "FREE",
+        "SEL",  "BAR",  "CHAT",
+        "EXPL", "SRC",  "GH-A",
+        "GHUB", "GPT",  "FREE",
     },
     [_SELECT] = {
         "BASE", "WIN",  "TXT",
@@ -224,8 +222,8 @@ static const char *const layer_function[_LAYER_COUNT][PAD_KEY_COUNT] = {
         "Volume down",    "Mute",           "Volume up",
     },
     [_RGB] = {
-        "Select layer",   "Speed down",     "Toggle RGB",
-        "Hue up",         "Hue down",       "Brightness up",
+        "Select layer",   "Speed down",      "Toggle RGB",
+        "Hue up",         "Hue down",        "Brightness up",
         "Saturation up",  "Saturation down", "Brightness down",
     },
     [_DEV] = {
@@ -243,7 +241,6 @@ static const char *const layer_function[_LAYER_COUNT][PAD_KEY_COUNT] = {
         "Go to media",    "Toggle FX mode", "Go to DEV",
         "Go to VSC",      "Go to RGB",      "Unused",
     },
-
 };
 
 static const char *layer_name_short(uint8_t l) {
@@ -377,10 +374,20 @@ static void send_vsc_command(const char *command) {
     tap_code(KC_ENT);
 }
 
-if (flash && (i % 2 == 0)) {
-    hue = 176;
-    sat = 220;
-    val = 110;
+static void trigger_vsc_target(uint8_t slot) {
+    if (slot >= 6) {
+        return;
+    }
+
+    if (vsc_mode == VSC_MODE_NONE) {
+        return;
+    }
+
+    if (vsc_mode == VSC_MODE_BAR) {
+        send_vsc_command(vsc_bar_commands[slot]);
+    } else if (vsc_mode == VSC_MODE_CHAT) {
+        send_string(vsc_chat_macros[slot]);
+    }
 }
 
 static uint8_t lerp8(uint8_t a, uint8_t b, uint8_t t) {
@@ -443,10 +450,8 @@ static void render_base_wild(void) {
 }
 
 static void render_window_wild(void) {
-    uint32_t now        = timer_read32();
-    uint8_t  spike      = (now / 110) % PAD_KEY_COUNT;
-    uint16_t flash_tick = now % 900;
-    bool     flash      = flash_tick < 95;
+    uint32_t now   = timer_read32();
+    uint8_t  spike = (now / 110) % PAD_KEY_COUNT;
 
     for (uint8_t i = 0; i < PAD_KEY_COUNT; i++) {
         uint8_t dist = (i > spike) ? (i - spike) : (spike - i);
@@ -456,17 +461,13 @@ static void render_window_wild(void) {
 
         if (dist == 0) {
             hue = 168;
+            sat = 245;
             val = 160;
         } else if (dist == 1) {
             hue = 176;
+            sat = 240;
             val = 90;
         }
-
-if (flash && (i % 2 == 0)) {
-    hue = 176;
-    sat = 220;
-    val = 110;
-}
 
         set_key_hsv(i, hue, sat, val);
     }
@@ -476,7 +477,7 @@ static void render_text_wild(void) {
     uint32_t now = timer_read32();
     for (uint8_t i = 0; i < PAD_KEY_COUNT; i++) {
         uint8_t drift = triwave8_period(now, 7600, i * 13);
-        uint8_t hue   = lerp8(88, 112, drift);  // green -> teal-ish green
+        uint8_t hue   = lerp8(88, 112, drift);
         uint8_t val   = pulse_val(now, 3600, i * 9, 10, 58);
         set_key_hsv(i, hue, 210, val);
     }
@@ -486,7 +487,7 @@ static void render_media_wild(void) {
     uint32_t now = timer_read32();
     for (uint8_t i = 0; i < PAD_KEY_COUNT; i++) {
         uint8_t swing = triwave8_period(now, 3000, i * 18);
-        uint8_t hue   = lerp8(24, 42, swing);   // warm orange-gold
+        uint8_t hue   = lerp8(24, 42, swing);
         uint8_t val   = pulse_val(now, 2000, i * 14, 14, 100);
         set_key_hsv(i, hue, 255, val);
     }
@@ -535,7 +536,7 @@ static void render_select_wild(void) {
         uint8_t sat = slot->sat;
         uint8_t hue = slot->hue;
 
-        if (i == 4) {  // center key = neutral SELECT/style slot
+        if (i == 4) {
             sat = 0;
             val = 24;
         }
@@ -602,15 +603,14 @@ static void render_rgb_layer_visuals(void) {
 // ── Keymaps ─────────────────────────────────────────────────
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_BASE] = LAYOUT(
-        MO(_SELECT),         KC_UP,              KC_BCKSP,
+        MO(_SELECT),         KC_UP,              KC_SPC,
         KC_LEFT,             KC_ENT,             KC_RGHT,
         LCTL(KC_Z),          KC_DOWN,            LCTL(KC_R)
     ),
 
     [_WINDOW] = LAYOUT(
         MO(_SELECT),         KC_HOME,            KC_END,
-        LGUI(LCTL(KC_LEFT)), LGUI(KC_D),
-LGUI(LCTL(KC_RGHT)),
+        LGUI(LCTL(KC_LEFT)), LGUI(KC_D),         LGUI(LCTL(KC_RGHT)),
         LSA(LALT(KC_TAB)),   LCTL(KC_TAB),       LALT(KC_TAB)
     ),
 
@@ -644,7 +644,6 @@ LGUI(LCTL(KC_RGHT)),
         VSC_4,               VSC_5,              VSC_6
     ),
 
-    // 1..9 = physical key numbering left to right
     [_SELECT] = LAYOUT(
         SEL_BASE,            SEL_WINDOW,         SEL_TEXT,
         SEL_MEDIA,           RGB_PROFILE,        SEL_DEV,
@@ -686,6 +685,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (record->event.key.row == SELECTOR_MATRIX_ROW && record->event.key.col == SELECTOR_MATRIX_COL) {
         r0c0_held = record->event.pressed;
     }
+
     if (record->event.key.row == 2 && record->event.key.col == 2) {
         if (record->event.pressed && r0c0_held) {
             selector_target = _BASE;
@@ -695,22 +695,23 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         }
     }
 
-   if (keycode == MO(_SELECT)) {
-    if (record->event.pressed) {
-        matrix_select_held = true;
-        update_select_layer_state();
-    } else {
-        matrix_select_held = false;
-        update_select_layer_state();
-        layer_move(selector_target);
+    if (keycode == MO(_SELECT)) {
+        if (record->event.pressed) {
+            matrix_select_held = true;
+            update_select_layer_state();
+        } else {
+            matrix_select_held = false;
+            update_select_layer_state();
+            layer_move(selector_target);
+        }
+        return false;
     }
-    return false;
-}
+
     if (record->event.pressed) {
-        last_keycode = keycode;
+        last_keycode   = keycode;
         last_key_layer = active_layer_raw();
-        last_row     = record->event.key.row;
-        last_col     = record->event.key.col;
+        last_row       = record->event.key.row;
+        last_col       = record->event.key.col;
     }
 
     switch (keycode) {
@@ -719,36 +720,43 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 select_target_layer(_BASE);
             }
             return false;
+
         case SEL_WINDOW:
             if (record->event.pressed) {
                 select_target_layer(_WINDOW);
             }
             return false;
+
         case SEL_TEXT:
             if (record->event.pressed) {
                 select_target_layer(_TEXT);
             }
             return false;
+
         case SEL_MEDIA:
             if (record->event.pressed) {
                 select_target_layer(_MEDIA);
             }
             return false;
+
         case SEL_RGB:
             if (record->event.pressed) {
                 select_target_layer(_RGB);
             }
             return false;
+
         case SEL_DEV:
             if (record->event.pressed) {
                 select_target_layer(_DEV);
             }
             return false;
+
         case SEL_VSC:
             if (record->event.pressed) {
                 select_target_layer(_VSC);
             }
             return false;
+
         case VSC_BAR:
             if (record->event.pressed) {
                 vsc_mode = VSC_MODE_BAR;
@@ -757,6 +765,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 vsc_mode = VSC_MODE_NONE;
             }
             return false;
+
         case VSC_CHAT:
             if (record->event.pressed) {
                 vsc_mode = VSC_MODE_CHAT;
@@ -765,6 +774,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 vsc_mode = VSC_MODE_NONE;
             }
             return false;
+
         case VSC_1:
         case VSC_2:
         case VSC_3:
@@ -775,6 +785,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 trigger_vsc_target((uint8_t)(keycode - VSC_1));
             }
             return false;
+
         case RGB_PROFILE:
             if (record->event.pressed) {
                 rgb_minimal_mode = !rgb_minimal_mode;
@@ -793,6 +804,7 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
         case _BASE:
             tap_code(clockwise ? MS_WHLU : MS_WHLD);
             break;
+
         case _WINDOW:
             if (clockwise) {
                 tap_code16(LALT(KC_TAB));
@@ -800,29 +812,37 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
                 tap_code16(LSA(LALT(KC_TAB)));
             }
             break;
+
         case _TEXT:
             tap_code(clockwise ? KC_RGHT : KC_LEFT);
             break;
+
         case _MEDIA:
             tap_code(clockwise ? KC_VOLU : KC_VOLD);
             break;
+
         case _RGB:
             tap_code16(clockwise ? UG_VALU : UG_VALD);
             break;
+
         case _DEV:
             tap_code(clockwise ? MS_WHLU : MS_WHLD);
             break;
+
         case _VSC:
             tap_code16(clockwise ? C(KC_PGDN) : C(KC_PGUP));
             break;
+
         case _SELECT:
             select_cursor = next_select_slot(select_cursor, clockwise);
             sync_selector_target_from_cursor();
             break;
+
         default:
             tap_code(clockwise ? KC_VOLU : KC_VOLD);
             break;
     }
+
     return false;
 }
 
@@ -855,13 +875,7 @@ void matrix_scan_user(void) {
 
 // ── Init ────────────────────────────────────────────────────
 void keyboard_post_init_user(void) {
-
-#ifdef SELECTOR_BTN_PIN
-    gpio_set_pin_input_high(SELECTOR_BTN_PIN);
-#endif
-
-
-    #ifdef RGBLIGHT_ENABLE
+#ifdef RGBLIGHT_ENABLE
     rgblight_enable_noeeprom();
     rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
 #endif
@@ -869,7 +883,6 @@ void keyboard_post_init_user(void) {
     gpio_set_pin_output(GP25);
     gpio_write_pin_high(GP25);
 
-    gpio_set_pin_input_high(ENCODER_BTN_PIN);
 #ifdef SELECTOR_BTN_PIN
     gpio_set_pin_input_high(SELECTOR_BTN_PIN);
 #endif
@@ -894,81 +907,31 @@ static void write_line(uint8_t row, const char *str) {
 
 static bool __attribute__((unused)) get_basic_key_label(uint16_t kc, char *buf, uint8_t buflen) {
     switch (kc) {
-        case KC_NO:
-            snprintf(buf, buflen, "NO");
-            return true;
-        case KC_UP:
-            snprintf(buf, buflen, "UP");
-            return true;
-        case KC_DOWN:
-            snprintf(buf, buflen, "DOWN");
-            return true;
-        case KC_LEFT:
-            snprintf(buf, buflen, "LEFT");
-            return true;
-        case KC_RGHT:
-            snprintf(buf, buflen, "RGHT");
-            return true;
-        case KC_ENT:
-            snprintf(buf, buflen, "ENT");
-            return true;
-        case KC_SPC:
-            snprintf(buf, buflen, "SPC");
-            return true;
-        case KC_BSPC:
-            snprintf(buf, buflen, "BSPC");
-            return true;
-        case KC_HOME:
-            snprintf(buf, buflen, "HOME");
-            return true;
-        case KC_END:
-            snprintf(buf, buflen, "END");
-            return true;
-        case KC_PENT:
-            snprintf(buf, buflen, "PENT");
-            return true;
-        case KC_PGUP:
-            snprintf(buf, buflen, "PGUP");
-            return true;
-        case KC_PGDN:
-            snprintf(buf, buflen, "PGDN");
-            return true;
-        case KC_VOLU:
-            snprintf(buf, buflen, "VOL+");
-            return true;
-        case KC_VOLD:
-            snprintf(buf, buflen, "VOL-");
-            return true;
-        case KC_LCTL:
-            snprintf(buf, buflen, "CTRL");
-            return true;
-        case KC_LSFT:
-            snprintf(buf, buflen, "SHIFT");
-            return true;
-        case KC_LALT:
-            snprintf(buf, buflen, "ALT");
-            return true;
-        case KC_LGUI:
-            snprintf(buf, buflen, "GUI");
-            return true;
-        case MS_BTN1:
-            snprintf(buf, buflen, "BTN1");
-            return true;
-        case MS_LEFT:
-            snprintf(buf, buflen, "M<-");
-            return true;
-        case MS_UP:
-            snprintf(buf, buflen, "MUP");
-            return true;
-        case MS_RGHT:
-            snprintf(buf, buflen, "M->");
-            return true;
-        case MS_WHLU:
-            snprintf(buf, buflen, "WHL+");
-            return true;
-        case MS_WHLD:
-            snprintf(buf, buflen, "WHL-");
-            return true;
+        case KC_NO:   snprintf(buf, buflen, "NO");   return true;
+        case KC_UP:   snprintf(buf, buflen, "UP");   return true;
+        case KC_DOWN: snprintf(buf, buflen, "DOWN"); return true;
+        case KC_LEFT: snprintf(buf, buflen, "LEFT"); return true;
+        case KC_RGHT: snprintf(buf, buflen, "RGHT"); return true;
+        case KC_ENT:  snprintf(buf, buflen, "ENT");  return true;
+        case KC_SPC:  snprintf(buf, buflen, "SPC");  return true;
+        case KC_BSPC: snprintf(buf, buflen, "BSPC"); return true;
+        case KC_HOME: snprintf(buf, buflen, "HOME"); return true;
+        case KC_END:  snprintf(buf, buflen, "END");  return true;
+        case KC_PENT: snprintf(buf, buflen, "PENT"); return true;
+        case KC_PGUP: snprintf(buf, buflen, "PGUP"); return true;
+        case KC_PGDN: snprintf(buf, buflen, "PGDN"); return true;
+        case KC_VOLU: snprintf(buf, buflen, "VOL+"); return true;
+        case KC_VOLD: snprintf(buf, buflen, "VOL-"); return true;
+        case KC_LCTL: snprintf(buf, buflen, "CTRL"); return true;
+        case KC_LSFT: snprintf(buf, buflen, "SHIFT"); return true;
+        case KC_LALT: snprintf(buf, buflen, "ALT"); return true;
+        case KC_LGUI: snprintf(buf, buflen, "GUI"); return true;
+        case MS_BTN1: snprintf(buf, buflen, "BTN1"); return true;
+        case MS_LEFT: snprintf(buf, buflen, "M<-"); return true;
+        case MS_UP:   snprintf(buf, buflen, "MUP"); return true;
+        case MS_RGHT: snprintf(buf, buflen, "M->"); return true;
+        case MS_WHLU: snprintf(buf, buflen, "WHL+"); return true;
+        case MS_WHLD: snprintf(buf, buflen, "WHL-"); return true;
     }
 
     return false;
@@ -1008,12 +971,14 @@ static void render_legend_view(uint8_t layer) {
              legend_label_for(layer, 0, 1),
              legend_label_for(layer, 0, 2));
     write_line(2, line);
+
     write_line(3, "4      5      6");
     snprintf(line, sizeof(line), "%-6.6s %-6.6s %-6.6s",
              legend_label_for(layer, 1, 0),
              legend_label_for(layer, 1, 1),
              legend_label_for(layer, 1, 2));
     write_line(4, line);
+
     write_line(5, "7      8      9");
     snprintf(line, sizeof(line), "%-6.6s %-6.6s %-6.6s",
              legend_label_for(layer, 2, 0),
@@ -1022,7 +987,8 @@ static void render_legend_view(uint8_t layer) {
     write_line(6, line);
 
     if (layer == _SELECT) {
-        snprintf(line, sizeof(line), "Cur%u Tgt->%.10s", select_cursor + 1, layer_name_long(selector_target));
+        snprintf(line, sizeof(line), "Cur%u Tgt->%.10s",
+                 select_cursor + 1, layer_name_long(selector_target));
     } else if (layer == _VSC) {
         snprintf(line, sizeof(line), "%s mode%s",
                  (current_vsc_preview_mode() == VSC_MODE_CHAT) ? "CHAT" : "BAR",
@@ -1044,17 +1010,23 @@ static void render_last_key_view(void) {
 
     render_header(last_key_layer);
     write_line(1, "LAST KEY");
+
     snprintf(buf, sizeof(buf), "Layer: %s", layer_name_long(last_key_layer));
     write_line(2, buf);
+
     snprintf(buf, sizeof(buf), "Key:   %.14s", label);
     write_line(3, buf);
+
     snprintf(buf, sizeof(buf), "Code:  0x%04X", last_keycode);
     write_line(4, buf);
+
     snprintf(buf, sizeof(buf), "Func:  %.14s", func);
     write_line(5, buf);
+
     snprintf(buf, sizeof(buf), "Pos:   %u (%u,%u)",
              (last_row * 3) + last_col + 1, last_row, last_col);
     write_line(6, buf);
+
 #ifdef SELECTOR_BTN_PIN
     write_line(7, "GP12: back to Lay");
 #else
