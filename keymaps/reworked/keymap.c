@@ -704,11 +704,10 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         }
     }
 
-    if (keycode == MO(_SELECT)) {
-        matrix_select_held = record->event.pressed;
-        update_select_layer_state();
-        return false;
-    }
+   if (keycode == MO(_SELECT)) {
+    matrix_select_held = record->event.pressed;
+    update_select_layer_state();
+    return false;
 
     if (record->event.pressed) {
         last_keycode = keycode;
@@ -831,7 +830,14 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 }
 
 // ── Buttons + animation pump ────────────────────────────────
-void matrix_scan_user(void)
+void matrix_scan_user(void) {
+#ifdef RGBLIGHT_ENABLE
+    if (timer_elapsed32(rgb_frame_timer) >= RGB_FRAME_MS) {
+        rgb_frame_timer = timer_read32();
+        render_rgb_layer_visuals();
+    }
+#endif
+}
 
 
 // ── Init ────────────────────────────────────────────────────
@@ -1047,11 +1053,7 @@ bool oled_task_user(void) {
 
     if (layer == _SELECT) {
         render_legend_view(_SELECT);
-    } else if (oled_view == OLED_VIEW_LAST_KEY) {
-        render_last_key_view();
-    } else {
-        render_legend_view(layer);
-    }
+
 
     return false;
 }
