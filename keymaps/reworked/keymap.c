@@ -86,6 +86,7 @@ static oled_view_t oled_view        = OLED_VIEW_LEGEND;
 static vsc_mode_t vsc_mode          = VSC_MODE_NONE;
 static vsc_mode_t last_vsc_mode     = VSC_MODE_BAR;
 static bool matrix_select_held      = false;
+static bool encoder_btn_pressed     = false;
 
 // ── Key -> LED mapping ──────────────────────────────────────
 // Physical key numbering for OLED is row-major / left-to-right:
@@ -603,7 +604,7 @@ static void render_rgb_layer_visuals(void) {
 // ── Keymaps ─────────────────────────────────────────────────
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_BASE] = LAYOUT(
-        MO(_SELECT),         KC_UP,              KC_SPC,
+        MO(_SELECT),         KC_UP,              KC_BCKSP,
         KC_LEFT,             KC_ENT,             KC_RGHT,
         LCTL(KC_Z),          KC_DOWN,            LCTL(KC_R)
     ),
@@ -814,7 +815,11 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
             break;
 
         case _TEXT:
-            tap_code(clockwise ? KC_RGHT : KC_LEFT);
+            if (encoder_btn_pressed) {
+                tap_code16(clockwise ? S(KC_RGHT) : S(KC_LEFT));
+            } else {
+                tap_code(clockwise ? KC_RGHT : KC_LEFT);
+            }
             break;
 
         case _MEDIA:
@@ -847,6 +852,10 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 }
 
 void matrix_scan_user(void) {
+#ifdef ENCODER_BTN_PIN
+    encoder_btn_pressed = (gpio_read_pin(ENCODER_BTN_PIN) == 0);
+#endif
+
 #ifdef SELECTOR_BTN_PIN
     static bool gp12_was_pressed = false;
     static uint32_t gp12_last_action = 0;
