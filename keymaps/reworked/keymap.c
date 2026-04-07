@@ -864,7 +864,13 @@ void matrix_scan_user(void) {
 
 // ── Init ────────────────────────────────────────────────────
 void keyboard_post_init_user(void) {
-#ifdef RGBLIGHT_ENABLE
+
+#ifdef SELECTOR_BTN_PIN
+    gpio_set_pin_input_high(SELECTOR_BTN_PIN);
+#endif
+
+
+    #ifdef RGBLIGHT_ENABLE
     rgblight_enable_noeeprom();
     rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
 #endif
