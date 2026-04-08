@@ -2,7 +2,7 @@
 #include "gpio.h"
 #include <stdio.h>
 
-// reworked_oled32: separate variant based on `reworked`, tuned for 128x32 OLEDs.
+// minioled: separate variant based on `reworked`, tuned for 128x32 OLEDs.
 
 // ============================================================
 // RGB / OLED selector build
