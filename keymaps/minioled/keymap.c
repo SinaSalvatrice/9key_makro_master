@@ -1183,21 +1183,21 @@ void matrix_scan_user(void) {
 #endif
 
 #ifdef SELECTOR_BTN_PIN
-    static bool gp12_was_pressed = false;
-    static uint32_t gp12_last_action = 0;
+    static bool gp11_was_pressed = false;
+    static uint32_t gp11_last_action = 0;
 
-    bool gp12_pressed = (gpio_read_pin(SELECTOR_BTN_PIN) == 0);
+    bool gp11_pressed = (gpio_read_pin(SELECTOR_BTN_PIN) == 0);
 
-    if (!gp12_pressed && gp12_was_pressed) {
-        if (timer_elapsed32(gp12_last_action) > BUTTON_DEBOUNCE_MS) {
+    if (!gp11_pressed && gp11_was_pressed) {
+        if (timer_elapsed32(gp11_last_action) > BUTTON_DEBOUNCE_MS) {
             oled_view = (oled_view == OLED_VIEW_LEGEND)
                       ? OLED_VIEW_LAST_KEY
                       : OLED_VIEW_LEGEND;
-            gp12_last_action = timer_read32();
+            gp11_last_action = timer_read32();
         }
     }
 
-    gp12_was_pressed = gp12_pressed;
+    gp11_was_pressed = gp11_pressed;
 #endif
 
 #ifdef RGBLIGHT_ENABLE
