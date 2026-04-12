@@ -258,9 +258,9 @@ static const char *const layer_legend[_LAYER_COUNT][PAD_KEY_COUNT] = {
         "SAT+", "SAT-", "VAL-",
     },
     [_DEV] = {
-        "SEL",  "CTRL", "SHIFT",
-        "ALT",  "GUI",  "BTN1",
-        "M<-",  "M^",   "M->",
+        "SEL",  "M^",   "SHIFT",
+        "M<-",  "BTN1", "M->",
+        "ALT",  "Mv",   "BTN2",
     },
     [_VSC] = {
         "SEL",  "BAR",  "CHAT",
@@ -301,9 +301,9 @@ static const char *const layer_function[_LAYER_COUNT][PAD_KEY_COUNT] = {
         "Saturation up",  "Saturation down", "Brightness down",
     },
     [_DEV] = {
-        "Select layer",   "Hold Ctrl",      "Hold Shift",
-        "Hold Alt",       "Hold GUI",       "Mouse button 1",
-        "Mouse left",     "Mouse up",       "Mouse right",
+        "Select layer",   "Mouse up",       "Hold Shift",
+        "Mouse left",     "Mouse button 1", "Mouse right",
+        "Hold Alt",       "Mouse down",     "Mouse button 2",
     },
     [_VSC] = {
         "Select layer",   "BAR mode",       "CHAT mode",
@@ -589,17 +589,19 @@ static void send_vsc_command(const char *command) {
 }
 
 static void trigger_vsc_target(uint8_t slot) {
+    vsc_mode_t mode = current_vsc_preview_mode();
+
     if (slot >= 6) {
         return;
     }
 
-    if (vsc_mode == VSC_MODE_NONE) {
+    if (mode == VSC_MODE_NONE) {
         return;
     }
 
-    if (vsc_mode == VSC_MODE_BAR) {
+    if (mode == VSC_MODE_BAR) {
         send_vsc_command(vsc_bar_commands[slot]);
-    } else if (vsc_mode == VSC_MODE_CHAT) {
+    } else if (mode == VSC_MODE_CHAT) {
         send_string(vsc_chat_macros[slot]);
     }
 }
