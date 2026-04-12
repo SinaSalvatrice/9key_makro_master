@@ -1233,6 +1233,95 @@ oled_rotation_t oled_init_user(oled_rotation_t rotation) {
     return rotation;
 }
 
+#ifdef OLED_DISPLAY_128X32
+static void write_line(uint8_t row, const char *str) {
+    char buf[22];
+    snprintf(buf, sizeof(buf), "%-21.21s", str);
+    oled_set_cursor(0, row);
+    oled_write(buf, false);
+}
+
+static void render_boot(void) {
+    if (boot_start == 0) {
+        boot_start = timer_read32() | 1;
+    }
+
+    uint32_t t = timer_elapsed32(boot_start);
+
+    write_line(0, "");
+    write_line(1, t >= 700 ? "       I AM" : "");
+    write_line(2, t >= 1200 ? "      ROOT" : "");
+    write_line(3, "");
+}
+
+static void render_header(uint8_t layer) {
+    char line[22];
+
+    if (layer == _SELECT) {
+        snprintf(line, sizeof(line), "SEL->%-6.6s FX:%s",
+                 layer_name_short(selector_target), rgb_minimal_mode ? "Q" : "W");
+    } else if (layer == _WINDOW) {
+        snprintf(line, sizeof(line), "WIN %-3s FX:%s",
+                 window_browser_held ? "BRO" : "WIN", rgb_minimal_mode ? "Q" : "W");
+    } else if (layer == _TEXT) {
+        const char *mode = text_action_held ? "ACT" : (text_edit_held ? "EDT" : "WIN");
+        snprintf(line, sizeof(line), "TXT %-3s FX:%s",
+                 mode, rgb_minimal_mode ? "Q" : "W");
+    } else if (layer == _VSC) {
+        snprintf(line, sizeof(line), "VSC %-4s FX:%s",
+                 (current_vsc_preview_mode() == VSC_MODE_CHAT) ? "CHAT" : "BAR",
+                 rgb_minimal_mode ? "Q" : "W");
+    } else {
+        snprintf(line, sizeof(line), "%-6s FX:%s",
+                 layer_name_short(layer), rgb_minimal_mode ? "Q" : "W");
+    }
+
+    write_line(0, line);
+}
+
+static void render_legend_view(uint8_t layer) {
+    char line[22];
+
+    render_header(layer);
+    snprintf(line, sizeof(line), "%-6.6s %-6.6s %-6.6s",
+             legend_label_for(layer, 0, 0),
+             legend_label_for(layer, 0, 1),
+             legend_label_for(layer, 0, 2));
+    write_line(1, line);
+
+    snprintf(line, sizeof(line), "%-6.6s %-6.6s %-6.6s",
+             legend_label_for(layer, 1, 0),
+             legend_label_for(layer, 1, 1),
+             legend_label_for(layer, 1, 2));
+    write_line(2, line);
+
+    snprintf(line, sizeof(line), "%-6.6s %-6.6s %-6.6s",
+             legend_label_for(layer, 2, 0),
+             legend_label_for(layer, 2, 1),
+             legend_label_for(layer, 2, 2));
+    write_line(3, line);
+}
+
+static void render_last_key_view(void) {
+    char buf[22];
+    const char *label = last_key_label_for();
+    const char *func  = last_key_function_for();
+
+    snprintf(buf, sizeof(buf), "LAST %-6.6s", layer_name_short(last_key_layer));
+    write_line(0, buf);
+
+    snprintf(buf, sizeof(buf), "K:%-7.7s %04X", label, last_keycode);
+    write_line(1, buf);
+
+    snprintf(buf, sizeof(buf), "F:%.18s", func);
+    write_line(2, buf);
+
+    snprintf(buf, sizeof(buf), "P:%u (%u,%u)",
+             (last_row * 3) + last_col + 1, last_row, last_col);
+    write_line(3, buf);
+}
+
+#else
 static void write_line(uint8_t row, const char *str) {
     char buf[22];
     snprintf(buf, sizeof(buf), "%-21.21s", str);
@@ -1401,4 +1490,5 @@ bool oled_task_user(void) {
 
     return false;
 }
+#endif
 #endif
