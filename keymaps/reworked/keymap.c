@@ -709,6 +709,16 @@ static void clear_all_keys(void) {
     }
 }
 
+static uint8_t minimal_profile_slot_for_layer(uint8_t layer) {
+    if (layer == _MEDIA) {
+        return slot_for_layer(_DEV);
+    }
+    if (layer == _DEV) {
+        return slot_for_layer(_MEDIA);
+    }
+    return slot_for_layer(layer);
+}
+
 static void render_minimal_profile(uint8_t layer) {
     clear_all_keys();
 
@@ -720,7 +730,7 @@ static void render_minimal_profile(uint8_t layer) {
         return;
     }
 
-    uint8_t slot = slot_for_layer(layer);
+    uint8_t slot = minimal_profile_slot_for_layer(layer);
     const select_slot_t *info = &select_slots[slot];
     uint8_t val = pulse_val(timer_read32(), 2400, 0, 12, 90);
     set_key_hsv(slot, info->hue, info->sat, val);
@@ -1240,6 +1250,10 @@ void keyboard_post_init_user(void) {
 
     gpio_set_pin_output(GP25);
     gpio_write_pin_high(GP25);
+
+#ifdef ENCODER_BTN_PIN
+    gpio_set_pin_input_high(ENCODER_BTN_PIN);
+#endif
 
 #ifdef SELECTOR_BTN_PIN
     gpio_set_pin_input_high(SELECTOR_BTN_PIN);
