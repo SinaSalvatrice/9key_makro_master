@@ -1321,6 +1321,23 @@ static void render_last_key_view(void) {
     write_line(3, buf);
 }
 
+bool oled_task_user(void) {
+    if (boot_start == 0 || timer_elapsed32(boot_start) < BOOT_TOTAL_MS) {
+        render_boot();
+        return false;
+    }
+
+    if (active_layer_raw() == _SELECT) {
+        render_legend_view(_SELECT);
+    } else if (oled_view == OLED_VIEW_LAST_KEY) {
+        render_last_key_view();
+    } else {
+        render_legend_view(active_layer_raw());
+    }
+
+    return false;
+}
+
 #else
 static void write_line(uint8_t row, const char *str) {
     char buf[22];
