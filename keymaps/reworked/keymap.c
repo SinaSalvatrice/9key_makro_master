@@ -113,6 +113,8 @@ static oled_view_t oled_view         = OLED_VIEW_LEGEND;
 static vsc_mode_t vsc_mode           = VSC_MODE_NONE;
 static vsc_mode_t last_vsc_mode      = VSC_MODE_BAR;
 static bool matrix_select_held       = false;
+static bool selector_nav_activity    = false;
+static bool fx_toggle_armed          = false;
 static bool encoder_btn_pressed      = false;
 static bool text_action_held         = false;
 static bool text_edit_held           = false;
@@ -987,9 +989,13 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (keycode == MO(_SELECT)) {
         if (record->event.pressed) {
             matrix_select_held = true;
+            selector_nav_activity = false;
+            fx_toggle_armed = false;
             update_select_layer_state();
         } else {
             matrix_select_held = false;
+            selector_nav_activity = false;
+            fx_toggle_armed = false;
             update_select_layer_state();
             layer_move(selector_target);
         }
@@ -1009,42 +1015,49 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case SEL_BASE:
             if (record->event.pressed) {
+                selector_nav_activity = true;
                 select_target_layer(_BASE);
             }
             return false;
 
         case SEL_WINDOW:
             if (record->event.pressed) {
+                selector_nav_activity = true;
                 select_target_layer(_WINDOW);
             }
             return false;
 
         case SEL_TEXT:
             if (record->event.pressed) {
+                selector_nav_activity = true;
                 select_target_layer(_TEXT);
             }
             return false;
 
         case SEL_MEDIA:
             if (record->event.pressed) {
+                selector_nav_activity = true;
                 select_target_layer(_MEDIA);
             }
             return false;
 
         case SEL_RGB:
             if (record->event.pressed) {
+                selector_nav_activity = true;
                 select_target_layer(_RGB);
             }
             return false;
 
         case SEL_DEV:
             if (record->event.pressed) {
+                selector_nav_activity = true;
                 select_target_layer(_DEV);
             }
             return false;
 
         case SEL_VSC:
             if (record->event.pressed) {
+                selector_nav_activity = true;
                 select_target_layer(_VSC);
             }
             return false;
@@ -1117,7 +1130,12 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
         case RGB_PROFILE:
             if (record->event.pressed) {
+                fx_toggle_armed = matrix_select_held && !selector_nav_activity;
+            } else if (fx_toggle_armed && !selector_nav_activity) {
                 rgb_minimal_mode = !rgb_minimal_mode;
+                fx_toggle_armed = false;
+            } else {
+                fx_toggle_armed = false;
             }
             return false;
     }
@@ -1170,6 +1188,7 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 
         case _SELECT:
             select_cursor = next_select_slot(select_cursor, clockwise);
+            selector_nav_activity = true;
             sync_selector_target_from_cursor();
             break;
 
