@@ -963,7 +963,11 @@ layer_state_t layer_state_set_user(layer_state_t state) {
 static void select_target_layer(uint8_t layer) {
     selector_target = layer;
     select_cursor   = slot_for_layer(selector_target);
-    layer_move(selector_target);
+
+    // Keep SELECT active while the selector key is held; commit the target on release.
+    if (!matrix_select_held) {
+        layer_move(selector_target);
+    }
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
