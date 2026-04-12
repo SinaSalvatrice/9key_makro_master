@@ -996,7 +996,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         }
     }
 
-    if (keycode == MO(_SELECT)) {
+    if (record->event.key.row == SELECTOR_MATRIX_ROW
+        && record->event.key.col == SELECTOR_MATRIX_COL
+        && keycode == MO(_SELECT)) {
         if (record->event.pressed) {
             matrix_select_held = true;
             selector_nav_activity = false;
@@ -1301,9 +1303,13 @@ static void render_header(uint8_t layer) {
         snprintf(line, sizeof(line), "WIN %-3s FX:%s",
                  window_browser_held ? "BRO" : "WIN", rgb_minimal_mode ? "Q" : "W");
     } else if (layer == _TEXT) {
-        const char *mode = text_action_held ? "ACT" : (text_edit_held ? "EDT" : "WIN");
-        snprintf(line, sizeof(line), "TXT %-3s FX:%s",
-                 mode, rgb_minimal_mode ? "Q" : "W");
+        if (text_action_held || text_edit_held) {
+            snprintf(line, sizeof(line), "TXT %-3s FX:%s",
+                     text_action_held ? "ACT" : "EDT", rgb_minimal_mode ? "Q" : "W");
+        } else {
+            snprintf(line, sizeof(line), "TXT    FX:%s",
+                     rgb_minimal_mode ? "Q" : "W");
+        }
     } else if (layer == _VSC) {
         snprintf(line, sizeof(line), "VSC %-4s FX:%s",
                  (current_vsc_preview_mode() == VSC_MODE_CHAT) ? "CHAT" : "BAR",
